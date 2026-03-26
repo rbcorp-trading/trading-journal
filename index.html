@@ -3,39 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Journal</title>
+<title>RBCorp Trading Journal</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-<!-- 🔥 FIREBASE SDK -->
+<!-- 🔥 FIREBASE SDK — Firestore only, no Storage needed -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
   // ====================================================
-  // 🔥 PASTE YOUR FIREBASE CONFIG HERE
+  // 🔥 FIREBASE CONFIG — trading-journal-e1242
   // ====================================================
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyC40rHhIKBcjqKLIkH1szCH75R2OoypLsA",
+    authDomain: "trading-journal-e1242.firebaseapp.com",
+    projectId: "trading-journal-e1242",
+    storageBucket: "trading-journal-e1242.firebasestorage.app",
+    messagingSenderId: "591951189916",
+    appId: "1:591951189916:web:204f7818da37ba38f15a59"
   };
   // ====================================================
 
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
+  const db  = getFirestore(app);
   window._db = db;
-  window._storage = storage;
-  window._firebase = { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, ref, uploadBytes, getDownloadURL };
+  window._firebase = { collection, addDoc, getDocs, updateDoc, deleteDoc, doc };
   window.dispatchEvent(new Event('firebaseReady'));
 </script>
 
 <style>
+/* ── THEME VARIABLES ── */
 :root {
   --bg:#0a0d14; --bg2:#111520; --card:#161b2e; --card2:#1e2540;
   --border:#252d45; --accent:#3b7eff; --accent2:#1a4fcc;
@@ -57,7 +55,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 button{cursor:pointer;font-family:var(--font);}
 input,select,textarea{font-family:var(--font);}
 
-/* NAV */
+/* ── NAV ── */
 .nav{background:var(--card);border-bottom:1px solid var(--border);padding:0 16px;
   display:flex;align-items:center;justify-content:space-between;height:56px;
   position:sticky;top:0;z-index:100;box-shadow:var(--shadow);gap:10px;}
@@ -72,12 +70,12 @@ input,select,textarea{font-family:var(--font);}
 .nav-tab.active{background:var(--accent);color:#fff;}
 .nav-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 
-/* MODE SELECTOR */
+/* ── MODE SELECTOR ── */
 .mode-selector{position:relative;}
 .mode-btn{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:20px;
   font-size:13px;font-weight:700;border:2px solid var(--mode-color);
   background:var(--mode-bg);color:var(--mode-color);transition:all .2s;cursor:pointer;}
-.mode-btn:hover{filter:brightness(1.1);}
+.mode-btn:hover{filter:brightness(1.15);}
 .mode-dot{width:8px;height:8px;border-radius:50%;background:var(--mode-color);
   box-shadow:0 0 8px var(--mode-color);animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
@@ -95,27 +93,25 @@ input,select,textarea{font-family:var(--font);}
 .mode-option-name{font-weight:700;font-size:13px;}
 .mode-option-desc{font-size:11px;color:var(--text2);margin-top:1px;}
 
-/* MODE BANNER */
+/* ── MODE BANNER ── */
 .mode-banner{padding:7px 16px;font-size:12px;font-weight:600;text-align:center;
-  background:var(--mode-bg);color:var(--mode-color);
-  border-bottom:1px solid var(--mode-color);
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  letter-spacing:.3px;transition:all .3s;}
+  background:var(--mode-bg);color:var(--mode-color);border-bottom:1px solid var(--mode-color);
+  display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:.3px;transition:all .3s;}
 
 .theme-toggle{background:var(--card2);border:1px solid var(--border);color:var(--text);
   padding:6px 11px;border-radius:20px;font-size:13px;transition:all .2s;}
 .theme-toggle:hover{border-color:var(--accent);}
 
-/* MAIN */
+/* ── LAYOUT ── */
 .main{padding:20px;max-width:1400px;margin:0 auto;}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
 
-/* CARDS */
+/* ── CARDS ── */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
 .card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:16px;}
 
-/* METRICS */
+/* ── METRICS ── */
 .metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:20px;}
 .metric-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
   padding:16px;position:relative;overflow:hidden;transition:transform .2s;}
@@ -128,7 +124,7 @@ input,select,textarea{font-family:var(--font);}
 .metric-value.green{color:var(--green);}
 .metric-value.red{color:var(--red);}
 
-/* TABLE */
+/* ── TABLE ── */
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 th{text-align:left;padding:10px 12px;font-size:11px;font-weight:600;text-transform:uppercase;
@@ -142,7 +138,7 @@ tr:hover td{background:var(--card2);}
 .badge-yellow{background:rgba(255,197,66,.15);color:var(--yellow);}
 .badge-blue{background:rgba(59,126,255,.15);color:var(--accent);}
 
-/* BUTTONS */
+/* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
   border-radius:7px;font-size:13px;font-weight:600;border:none;transition:all .2s;}
 .btn-primary{background:var(--accent);color:#fff;}
@@ -156,7 +152,7 @@ tr:hover td{background:var(--card2);}
 .btn-sm{padding:5px 10px;font-size:12px;}
 .btn-xs{padding:3px 8px;font-size:11px;}
 
-/* FORMS */
+/* ── FORMS ── */
 .form-grid{display:grid;gap:16px;}
 .form-grid-2{grid-template-columns:1fr 1fr;}
 .form-grid-3{grid-template-columns:1fr 1fr 1fr;}
@@ -169,7 +165,7 @@ tr:hover td{background:var(--card2);}
 .form-control::placeholder{color:var(--text3);}
 select.form-control option{background:var(--card);}
 
-/* CALCULATOR */
+/* ── CALCULATOR ── */
 .calc-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
 .calc-row{display:flex;justify-content:space-between;align-items:center;
   padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
@@ -184,12 +180,12 @@ select.form-control option{background:var(--card);}
 .calc-highlight .calc-label{font-weight:600;color:var(--text);}
 .calc-highlight .calc-value{font-size:18px;}
 
-/* SECTION HEADER */
+/* ── SECTION HEADER ── */
 .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
 .section-title{font-size:16px;font-weight:700;color:var(--text);}
 .section-sub{font-size:12px;color:var(--text2);margin-top:2px;}
 
-/* MODAL */
+/* ── MODAL ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
   z-index:1000;align-items:center;justify-content:center;padding:20px;}
 .modal-overlay.open{display:flex;}
@@ -201,29 +197,20 @@ select.form-control option{background:var(--card);}
 .modal-close{background:none;border:none;color:var(--text2);font-size:20px;padding:4px;}
 .modal-close:hover{color:var(--red);}
 
-/* FILE UPLOAD */
-.file-drop{border:2px dashed var(--border);border-radius:var(--radius);padding:16px;
-  text-align:center;cursor:pointer;transition:all .2s;color:var(--text2);font-size:13px;}
-.file-drop:hover{border-color:var(--accent);color:var(--accent);}
-.file-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
-.file-chip{background:var(--card2);border:1px solid var(--border);border-radius:6px;
-  padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:6px;}
-.file-chip button{background:none;border:none;color:var(--red);font-size:14px;padding:0;}
-
-/* CHART */
+/* ── CHART ── */
 .chart-container{position:relative;height:280px;}
 .chart-filters{display:flex;gap:6px;margin-bottom:14px;}
 .chart-filter{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;
   border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .2s;}
 .chart-filter.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 
-/* SUB FILTERS */
+/* ── SUB FILTERS ── */
 .sub-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
 .sub-filter{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;
   border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;}
 .sub-filter.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 
-/* WATCHLIST */
+/* ── WATCHLIST ── */
 .watchlist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
 .watchlist-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
 .watchlist-card-header{padding:12px 16px;background:var(--card2);display:flex;
@@ -235,46 +222,32 @@ select.form-control option{background:var(--card);}
 .ticker-badge{font-family:var(--font-mono);font-weight:700;font-size:13px;
   background:var(--bg2);padding:3px 8px;border-radius:5px;}
 
-/* RISK CONFIG */
+/* ── RISK CONFIG ── */
 .config-preview{background:var(--bg2);border-radius:7px;padding:8px 12px;
   font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--accent);margin-top:4px;}
 
-/* MEDIA */
-.media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
-.media-thumb{border-radius:7px;overflow:hidden;cursor:pointer;border:1px solid var(--border);
-  aspect-ratio:16/9;background:var(--bg2);display:flex;align-items:center;justify-content:center;flex-direction:column;}
-.media-thumb img{width:100%;height:100%;object-fit:cover;}
-
-/* COMPARE */
-.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-@media(max-width:700px){.compare-grid{grid-template-columns:1fr;}}
-.compare-side{background:var(--bg2);border-radius:var(--radius);padding:14px;}
-.compare-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
-.compare-label.entry{color:var(--accent);}
-.compare-label.exit{color:var(--green);}
-
-/* EMPTY STATE */
+/* ── EMPTY STATE ── */
 .empty-state{text-align:center;padding:60px 20px;color:var(--text2);}
 .empty-icon{font-size:48px;margin-bottom:16px;}
 .empty-title{font-size:16px;font-weight:600;margin-bottom:8px;color:var(--text);}
 .empty-sub{font-size:13px;}
 
-/* MISC */
+/* ── MISC ── */
 .loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--text2);font-size:13px;gap:10px;}
 .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .firebase-status{position:fixed;bottom:16px;right:16px;background:var(--card);
   border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;
   display:flex;align-items:center;gap:6px;z-index:500;box-shadow:var(--shadow);}
-.toast{position:fixed;bottom:60px;right:16px;background:var(--card2);
-  border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;
-  z-index:1000;transform:translateX(120%);transition:transform .3s;box-shadow:var(--shadow);}
+.toast{position:fixed;bottom:60px;right:16px;background:var(--card2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 16px;font-size:13px;z-index:1000;
+  transform:translateX(120%);transition:transform .3s;box-shadow:var(--shadow);}
 .toast.show{transform:translateX(0);}
 .toast.success{border-color:var(--green);color:var(--green);}
 .toast.error{border-color:var(--red);color:var(--red);}
 .toast.info{border-color:var(--accent);color:var(--accent);}
 
-/* CONFIRM DIALOG */
+/* ── CONFIRM DIALOG ── */
 .confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
   z-index:2000;align-items:center;justify-content:center;padding:20px;}
 .confirm-overlay.open{display:flex;}
@@ -285,19 +258,22 @@ select.form-control option{background:var(--card);}
 .confirm-sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
 .confirm-btns{display:flex;gap:10px;justify-content:center;}
 
+/* ── CLOSE TRADE PNL PREVIEW ── */
+.pnl-preview-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:14px;}
+
 @media(max-width:600px){.nav-brand span{display:none;}.nav-tab{padding:6px 10px;font-size:12px;}}
 .gap-2{gap:8px;}.mt-2{margin-top:8px;}.mt-3{margin-top:14px;}.mt-4{margin-top:20px;}
 .flex{display:flex;}.flex-wrap{flex-wrap:wrap;}.items-center{align-items:center;}
 .justify-between{justify-content:space-between;}
-.text-green{color:var(--green);}.text-red{color:var(--red);}.text-yellow{color:var(--yellow);}
+.text-green{color:var(--green);}.text-red{color:var(--red);}
 .text-mono{font-family:var(--font-mono);}.fw-7{font-weight:700;}
 </style>
 </head>
 <body data-theme="dark" data-mode="paper">
 
-<!-- NAV -->
+<!-- ── NAV ── -->
 <nav class="nav">
-  <div class="nav-brand">📈 <span>Trading Journal</span></div>
+  <div class="nav-brand">📈 <span>RBCorp Trading Journal</span></div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showTab('dashboard',this)">Dashboard</button>
     <button class="nav-tab" onclick="showTab('open-trades',this)">Open Trades</button>
@@ -317,12 +293,12 @@ select.form-control option{background:var(--card);}
         <div class="mode-option active" id="opt-paper" onclick="requestModeSwitch('paper')">
           <span class="mode-option-dot paper"></span>
           <div><div class="mode-option-name">Paper Trading</div>
-          <div class="mode-option-desc">Practice account — no real money</div></div>
+          <div class="mode-option-desc">Practice — no real money</div></div>
         </div>
         <div class="mode-option" id="opt-live" onclick="requestModeSwitch('live')">
           <span class="mode-option-dot live"></span>
           <div><div class="mode-option-name">Live Trading</div>
-          <div class="mode-option-desc">Real money account — be careful!</div></div>
+          <div class="mode-option-desc">Real money — be careful!</div></div>
         </div>
       </div>
     </div>
@@ -330,31 +306,32 @@ select.form-control option{background:var(--card);}
   </div>
 </nav>
 
-<!-- MODE BANNER -->
+<!-- ── MODE BANNER ── -->
 <div class="mode-banner" id="modeBanner">
   <span id="bannerIcon">🟡</span>
   <span id="bannerText">PAPER TRADING MODE — Practice account. No real money at risk.</span>
 </div>
 
-<!-- MAIN -->
 <div class="main">
 
-  <!-- ═══ DASHBOARD ═══ -->
+  <!-- ════════ DASHBOARD ════════ -->
   <div id="tab-dashboard" class="tab-content active">
     <div class="section-header">
-      <div><div class="section-title">Dashboard</div>
-      <div class="section-sub" id="dashSub">Paper Trading Overview</div></div>
+      <div>
+        <div class="section-title">Dashboard</div>
+        <div class="section-sub" id="dashSub">Paper Trading Overview</div>
+      </div>
       <button class="btn btn-outline btn-sm" onclick="refreshDashboard()">⟳ Refresh</button>
     </div>
     <div class="metrics-grid">
-      <div class="metric-card"><div class="metric-label">Open Trades</div><div class="metric-value" id="m-open">—</div></div>
-      <div class="metric-card green"><div class="metric-label">Capital Deployed</div><div class="metric-value text-mono" id="m-capital">—</div></div>
-      <div class="metric-card"><div class="metric-label">Unrealized P&L</div><div class="metric-value text-mono" id="m-unrealized">—</div></div>
-      <div class="metric-card green"><div class="metric-label">Realized P&L</div><div class="metric-value text-mono" id="m-realized">—</div></div>
-      <div class="metric-card"><div class="metric-label">Win Rate</div><div class="metric-value" id="m-winrate">—</div></div>
-      <div class="metric-card"><div class="metric-label">Account Balance</div><div class="metric-value text-mono" id="m-balance">—</div></div>
-      <div class="metric-card"><div class="metric-label">Total Trades</div><div class="metric-value" id="m-total">—</div></div>
-      <div class="metric-card"><div class="metric-label">Avg Win / Loss</div><div class="metric-value" id="m-avgwl" style="font-size:14px;">—</div></div>
+      <div class="metric-card">        <div class="metric-label">Open Trades</div>    <div class="metric-value" id="m-open">—</div></div>
+      <div class="metric-card green">  <div class="metric-label">Capital Deployed</div><div class="metric-value text-mono" id="m-capital">—</div></div>
+      <div class="metric-card">        <div class="metric-label">Unrealized P&L</div> <div class="metric-value text-mono" id="m-unrealized">—</div></div>
+      <div class="metric-card green">  <div class="metric-label">Realized P&L</div>   <div class="metric-value text-mono" id="m-realized">—</div></div>
+      <div class="metric-card">        <div class="metric-label">Win Rate</div>        <div class="metric-value" id="m-winrate">—</div></div>
+      <div class="metric-card">        <div class="metric-label">Account Balance</div><div class="metric-value text-mono" id="m-balance">—</div></div>
+      <div class="metric-card">        <div class="metric-label">Total Trades</div>   <div class="metric-value" id="m-total">—</div></div>
+      <div class="metric-card">        <div class="metric-label">Avg Win / Loss</div> <div class="metric-value" id="m-avgwl" style="font-size:14px;">—</div></div>
     </div>
     <div class="card">
       <div class="card-title">Realized P&L Over Time</div>
@@ -376,58 +353,71 @@ select.form-control option{background:var(--card);}
     </div>
   </div>
 
-  <!-- ═══ OPEN TRADES ═══ -->
+  <!-- ════════ OPEN TRADES ════════ -->
   <div id="tab-open-trades" class="tab-content">
     <div class="section-header">
-      <div><div class="section-title">Open Trades</div>
-      <div class="section-sub" id="openTradeCount">Loading...</div></div>
+      <div>
+        <div class="section-title">Open Trades</div>
+        <div class="section-sub" id="openTradeCount">Loading...</div>
+      </div>
     </div>
     <div class="card">
       <div class="table-wrap"><table>
         <thead><tr>
-          <th>Ticker</th><th>Dir</th><th>Entry Date</th><th>Expiry</th><th>Strike</th>
-          <th>Entry $</th><th>Contracts</th><th>Capital</th><th>Stop</th><th>Target</th>
-          <th>Status</th><th>Actions</th>
+          <th>Ticker</th><th>Dir</th><th>Entry Date</th><th>Expiry</th>
+          <th>Strike</th><th>Entry $</th><th>Contracts</th><th>Capital</th>
+          <th>Stop</th><th>Target</th><th>Conviction</th><th>Status</th><th>Actions</th>
         </tr></thead>
-        <tbody id="openTradesBody"><tr><td colspan="12" class="loading"><div class="spinner"></div> Loading...</td></tr></tbody>
+        <tbody id="openTradesBody">
+          <tr><td colspan="13" class="loading"><div class="spinner"></div> Loading...</td></tr>
+        </tbody>
       </table></div>
     </div>
   </div>
 
-  <!-- ═══ CLOSED TRADES ═══ -->
+  <!-- ════════ CLOSED TRADES ════════ -->
   <div id="tab-closed-trades" class="tab-content">
     <div class="section-header">
-      <div><div class="section-title">Closed Trades</div>
-      <div class="section-sub" id="closedTradeCount">Loading...</div></div>
+      <div>
+        <div class="section-title">Closed Trades</div>
+        <div class="section-sub" id="closedTradeCount">Loading...</div>
+      </div>
     </div>
     <div class="sub-filters">
       <button class="sub-filter active" onclick="filterClosed('all',this)">All</button>
-      <button class="sub-filter" onclick="filterClosed('wins',this)">Wins</button>
-      <button class="sub-filter" onclick="filterClosed('losses',this)">Losses</button>
+      <button class="sub-filter" onclick="filterClosed('wins',this)">✅ Wins</button>
+      <button class="sub-filter" onclick="filterClosed('losses',this)">❌ Losses</button>
     </div>
     <div class="card">
       <div class="table-wrap"><table>
         <thead><tr>
-          <th>Ticker</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Strike</th>
-          <th>Entry $</th><th>Exit $</th><th>Contracts</th><th>P&L</th><th>RRR</th>
-          <th>Reason</th><th>Result</th><th>Actions</th>
+          <th>Ticker</th><th>Dir</th><th>Entry Date</th><th>Exit Date</th>
+          <th>Strike</th><th>Entry $</th><th>Exit $</th><th>Contracts</th>
+          <th>P&L</th><th>RRR</th><th>Reason</th><th>Result</th><th>Notes</th><th>Actions</th>
         </tr></thead>
-        <tbody id="closedTradesBody"><tr><td colspan="13" class="loading"><div class="spinner"></div> Loading...</td></tr></tbody>
+        <tbody id="closedTradesBody">
+          <tr><td colspan="14" class="loading"><div class="spinner"></div> Loading...</td></tr>
+        </tbody>
       </table></div>
     </div>
   </div>
 
-  <!-- ═══ NEW TRADE ═══ -->
+  <!-- ════════ NEW TRADE ════════ -->
   <div id="tab-new-trade" class="tab-content">
     <div class="section-header">
-      <div><div class="section-title">New Trade Entry</div>
-      <div class="section-sub" id="newTradeSub">Logging to: Paper Trading</div></div>
+      <div>
+        <div class="section-title">New Trade Entry</div>
+        <div class="section-sub" id="newTradeSub">Logging to: Paper Trading</div>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;" id="tradeEntryLayout">
+
+      <!-- LEFT: FORM -->
       <div style="display:flex;flex-direction:column;gap:16px;">
 
+        <!-- SECTION A -->
         <div class="card">
-          <div class="card-title">Section A — Stock & Analysis</div>
+          <div class="card-title">Section A — Stock & Setup</div>
           <div class="form-grid form-grid-2">
             <div class="form-group">
               <label class="form-label">Ticker Symbol *</label>
@@ -446,10 +436,6 @@ select.form-control option{background:var(--card);}
               <input class="form-control" type="number" id="nt-stockprice" placeholder="100.00" step="0.01" oninput="recalc()">
             </div>
             <div class="form-group">
-              <label class="form-label">Analysis Date</label>
-              <input class="form-control" type="date" id="nt-analysisdate">
-            </div>
-            <div class="form-group">
               <label class="form-label">Conviction Level</label>
               <select class="form-control" id="nt-conviction">
                 <option value="">Select...</option>
@@ -458,25 +444,22 @@ select.form-control option{background:var(--card);}
                 <option value="Low">Low</option>
               </select>
             </div>
+            <div class="form-group">
+              <label class="form-label">Analysis Date</label>
+              <input class="form-control" type="date" id="nt-analysisdate">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Entry Date</label>
+              <input class="form-control" type="date" id="nt-entrydate">
+            </div>
             <div class="form-group" style="grid-column:1/-1;">
               <label class="form-label">Trigger Condition</label>
-              <textarea class="form-control" id="nt-trigger" rows="2" placeholder="Describe your entry trigger..."></textarea>
+              <textarea class="form-control" id="nt-trigger" rows="2" placeholder="Describe your entry trigger / setup reason..."></textarea>
             </div>
-          </div>
-          <div class="mt-3">
-            <label class="form-label">Upload Chart Images (max 3)</label>
-            <div class="file-drop" onclick="document.getElementById('nt-charts').click()">📊 Click to upload chart screenshots</div>
-            <input type="file" id="nt-charts" multiple accept="image/*" style="display:none" onchange="handleFileSelect('nt-charts','nt-charts-list',3)">
-            <div class="file-list" id="nt-charts-list"></div>
-          </div>
-          <div class="mt-3">
-            <label class="form-label">Upload Analysis PDF (max 1)</label>
-            <div class="file-drop" onclick="document.getElementById('nt-pdf').click()">📄 Click to upload Claude analysis PDF</div>
-            <input type="file" id="nt-pdf" accept=".pdf" style="display:none" onchange="handleFileSelect('nt-pdf','nt-pdf-list',1)">
-            <div class="file-list" id="nt-pdf-list"></div>
           </div>
         </div>
 
+        <!-- SECTION B -->
         <div class="card">
           <div class="card-title">Section B — Option Details</div>
           <div class="form-grid form-grid-3">
@@ -507,9 +490,10 @@ select.form-control option{background:var(--card);}
           </div>
         </div>
 
+        <!-- SECTION C -->
         <div class="card">
           <div class="card-title">Section C — Risk Parameters</div>
-          <div class="form-grid form-grid-3">
+          <div class="form-grid form-grid-2">
             <div class="form-group">
               <label class="form-label">Stop Loss Stock Price ($) *</label>
               <input class="form-control" type="number" id="nt-stoploss" placeholder="98.00" step="0.01" oninput="recalc()">
@@ -521,16 +505,13 @@ select.form-control option{background:var(--card);}
           </div>
         </div>
 
+        <!-- SECTION D -->
         <div class="card">
           <div class="card-title">Section D — Entry Confirmation</div>
-          <div class="form-grid form-grid-3">
+          <div class="form-grid form-grid-2">
             <div class="form-group">
-              <label class="form-label">Contracts *</label>
+              <label class="form-label">Number of Contracts *</label>
               <input class="form-control" type="number" id="nt-contracts" placeholder="1" min="1" step="1">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Entry Date</label>
-              <input class="form-control" type="date" id="nt-entrydate">
             </div>
             <div class="form-group" style="grid-column:1/-1;">
               <label class="form-label">Notes</label>
@@ -539,47 +520,80 @@ select.form-control option{background:var(--card);}
           </div>
           <div class="mt-3 flex gap-2">
             <button class="btn btn-primary" onclick="submitTrade()">✅ Add Entry Order</button>
-            <button class="btn btn-outline" onclick="resetTradeForm()">Clear Form</button>
+            <button class="btn btn-outline" onclick="resetTradeForm()">🗑 Clear Form</button>
           </div>
         </div>
       </div>
 
-      <!-- CALCULATOR -->
+      <!-- RIGHT: CALCULATOR -->
       <div>
         <div class="card" style="position:sticky;top:80px;">
           <div class="card-title">⚡ Risk Calculator</div>
           <div class="calc-panel">
-            <div class="calc-row"><span class="calc-label">Price gap to stop</span><span class="calc-value" id="c-gap">—</span></div>
-            <div class="calc-row"><span class="calc-label">Loss per contract</span><span class="calc-value" id="c-losspercontract">—</span></div>
+            <div class="calc-row">
+              <span class="calc-label">Price gap to stop</span>
+              <span class="calc-value" id="c-gap">—</span>
+            </div>
+            <div class="calc-row">
+              <span class="calc-label">Loss per contract</span>
+              <span class="calc-value" id="c-losspercontract">—</span>
+            </div>
             <div class="calc-divider"></div>
-            <div class="calc-row"><span class="calc-label">Max risk $ (config)</span><span class="calc-value" id="c-maxrisk">—</span></div>
-            <div class="calc-row"><span class="calc-label">Risk check</span><span class="calc-value" id="c-riskcheck">—</span></div>
+            <div class="calc-row">
+              <span class="calc-label">Max risk $ (config)</span>
+              <span class="calc-value" id="c-maxrisk">—</span>
+            </div>
+            <div class="calc-row">
+              <span class="calc-label">Risk check</span>
+              <span class="calc-value" id="c-riskcheck">—</span>
+            </div>
             <div class="calc-divider"></div>
-            <div class="calc-row"><span class="calc-label">Max position $ (config)</span><span class="calc-value" id="c-maxpos">—</span></div>
-            <div class="calc-row"><span class="calc-label">Contracts by position</span><span class="calc-value" id="c-bypos">—</span></div>
-            <div class="calc-row"><span class="calc-label">Contracts by risk</span><span class="calc-value" id="c-byrisk">—</span></div>
+            <div class="calc-row">
+              <span class="calc-label">Max position $ (config)</span>
+              <span class="calc-value" id="c-maxpos">—</span>
+            </div>
+            <div class="calc-row">
+              <span class="calc-label">Contracts by position</span>
+              <span class="calc-value" id="c-bypos">—</span>
+            </div>
+            <div class="calc-row">
+              <span class="calc-label">Contracts by risk</span>
+              <span class="calc-value" id="c-byrisk">—</span>
+            </div>
             <div class="calc-highlight">
               <span class="calc-label">✅ Recommended</span>
               <span class="calc-value green" id="c-recommended">—</span>
             </div>
             <div class="calc-divider"></div>
-            <div class="calc-row"><span class="calc-label">Capital to deploy</span><span class="calc-value" id="c-capital">—</span></div>
-            <div class="calc-row"><span class="calc-label">Expected max loss</span><span class="calc-value red" id="c-maxloss">—</span></div>
-            <div class="calc-row"><span class="calc-label">Expected profit at target</span><span class="calc-value green" id="c-profit">—</span></div>
+            <div class="calc-row">
+              <span class="calc-label">Capital to deploy</span>
+              <span class="calc-value" id="c-capital">—</span>
+            </div>
+            <div class="calc-row">
+              <span class="calc-label">Expected max loss</span>
+              <span class="calc-value red" id="c-maxloss">—</span>
+            </div>
+            <div class="calc-row">
+              <span class="calc-label">Expected profit at target</span>
+              <span class="calc-value green" id="c-profit">—</span>
+            </div>
           </div>
-          <div class="mt-3" style="font-size:11px;color:var(--text3);">
-            💡 Using <strong id="calcModeLabel">Paper</strong> risk config.
+          <div class="mt-3" style="font-size:11px;color:var(--text3);line-height:1.5;">
+            💡 Using <strong id="calcModeLabel">Paper</strong> risk config.<br>
+            Recommended = lower of contracts by position vs risk.
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══ WATCHLIST ═══ -->
+  <!-- ════════ WATCHLIST ════════ -->
   <div id="tab-watchlist" class="tab-content">
     <div class="section-header">
-      <div><div class="section-title">Watchlist</div>
-      <div class="section-sub" id="watchlistSub">Paper Trading Watchlist</div></div>
+      <div>
+        <div class="section-title">Watchlist</div>
+        <div class="section-sub" id="watchlistSub">Paper Trading Watchlist</div>
+      </div>
       <button class="btn btn-primary btn-sm" onclick="openModal('modal-new-watchlist')">+ New Watchlist</button>
     </div>
     <div class="watchlist-grid" id="watchlistGrid">
@@ -587,13 +601,15 @@ select.form-control option{background:var(--card);}
     </div>
   </div>
 
-  <!-- ═══ RISK CONFIG ═══ -->
+  <!-- ════════ RISK CONFIG ════════ -->
   <div id="tab-risk-config" class="tab-content">
     <div class="section-header">
-      <div><div class="section-title">Risk Configuration</div>
-      <div class="section-sub" id="riskConfigSub">Paper Trading — Risk Settings</div></div>
+      <div>
+        <div class="section-title">Risk Configuration</div>
+        <div class="section-sub" id="riskConfigSub">Paper Trading — Risk Settings</div>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" id="riskConfigLayout">
       <div class="card">
         <div class="card-title">Account Settings</div>
         <div class="form-grid" style="gap:14px;">
@@ -602,7 +618,7 @@ select.form-control option{background:var(--card);}
             <input class="form-control" type="number" id="rc-funding" placeholder="5000" step="100" oninput="updateConfigPreviews()">
           </div>
           <div class="form-group">
-            <label class="form-label">Current Account Balance ($)</label>
+            <label class="form-label">Current Account Balance</label>
             <div class="config-preview" id="rc-balance-preview">Auto-calculated from trades</div>
           </div>
           <div class="form-group">
@@ -648,7 +664,9 @@ select.form-control option{background:var(--card);}
 
 </div><!-- /main -->
 
-<!-- ═══ MODALS ═══ -->
+<!-- ════════ MODALS ════════ -->
+
+<!-- New Watchlist -->
 <div class="modal-overlay" id="modal-new-watchlist">
   <div class="modal">
     <div class="modal-header">
@@ -666,6 +684,7 @@ select.form-control option{background:var(--card);}
   </div>
 </div>
 
+<!-- Add Stock -->
 <div class="modal-overlay" id="modal-add-stock">
   <div class="modal">
     <div class="modal-header">
@@ -696,7 +715,7 @@ select.form-control option{background:var(--card);}
       </div>
       <div class="form-group" style="grid-column:1/-1;">
         <label class="form-label">Notes</label>
-        <textarea class="form-control" id="as-notes" rows="2" placeholder="Notes..."></textarea>
+        <textarea class="form-control" id="as-notes" rows="2" placeholder="Notes about this stock..."></textarea>
       </div>
     </div>
     <div class="mt-3 flex gap-2">
@@ -706,8 +725,9 @@ select.form-control option{background:var(--card);}
   </div>
 </div>
 
+<!-- Close Trade -->
 <div class="modal-overlay" id="modal-close-trade">
-  <div class="modal" style="max-width:680px;">
+  <div class="modal" style="max-width:560px;">
     <div class="modal-header">
       <div class="modal-title">Close Trade — <span id="ct-ticker-label"></span></div>
       <button class="modal-close" onclick="closeModal('modal-close-trade')">✕</button>
@@ -736,32 +756,26 @@ select.form-control option{background:var(--card);}
         </select>
       </div>
     </div>
-    <div class="calc-panel mt-3" id="ct-pnl-preview" style="display:none;">
-      <div class="calc-row"><span class="calc-label">Entry Price</span><span class="calc-value" id="ct-entry-display">—</span></div>
-      <div class="calc-row"><span class="calc-label">Exit Price</span><span class="calc-value" id="ct-exit-display">—</span></div>
-      <div class="calc-row"><span class="calc-label">Contracts</span><span class="calc-value" id="ct-contracts-display">—</span></div>
-      <div class="calc-highlight">
-        <span class="calc-label fw-7">Realized P&L</span>
-        <span class="calc-value" id="ct-pnl-display" style="font-size:20px;">—</span>
+
+    <!-- P&L Preview -->
+    <div class="pnl-preview-box" id="ct-pnl-preview" style="display:none;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:12px;">P&L Preview</div>
+      <div class="calc-panel" style="padding:12px;">
+        <div class="calc-row"><span class="calc-label">Entry price</span><span class="calc-value" id="ct-entry-display">—</span></div>
+        <div class="calc-row"><span class="calc-label">Exit price</span><span class="calc-value" id="ct-exit-display">—</span></div>
+        <div class="calc-row"><span class="calc-label">Contracts</span><span class="calc-value" id="ct-contracts-display">—</span></div>
+        <div class="calc-highlight" style="margin-top:8px;">
+          <span class="calc-label" style="font-weight:700;">Realized P&L</span>
+          <span class="calc-value" id="ct-pnl-display" style="font-size:22px;">—</span>
+        </div>
+        <div class="calc-row"><span class="calc-label">RRR achieved</span><span class="calc-value" id="ct-rrr-display">—</span></div>
+        <div class="calc-row"><span class="calc-label">Result</span><span id="ct-result-display">—</span></div>
       </div>
-      <div class="calc-row"><span class="calc-label">RRR Achieved</span><span class="calc-value" id="ct-rrr-display">—</span></div>
-      <div class="calc-row"><span class="calc-label">Result</span><span class="calc-value" id="ct-result-display">—</span></div>
     </div>
+
     <div class="form-group mt-3">
-      <label class="form-label">Notes</label>
-      <textarea class="form-control" id="ct-notes" rows="2" placeholder="What happened? Lessons learned..."></textarea>
-    </div>
-    <div class="mt-3">
-      <label class="form-label">Exit Chart Images (max 3)</label>
-      <div class="file-drop" onclick="document.getElementById('ct-charts').click()">📊 Upload exit charts</div>
-      <input type="file" id="ct-charts" multiple accept="image/*" style="display:none" onchange="handleFileSelect('ct-charts','ct-charts-list',3)">
-      <div class="file-list" id="ct-charts-list"></div>
-    </div>
-    <div class="mt-3">
-      <label class="form-label">Exit Analysis PDF (max 1)</label>
-      <div class="file-drop" onclick="document.getElementById('ct-pdf').click()">📄 Upload exit PDF</div>
-      <input type="file" id="ct-pdf" accept=".pdf" style="display:none" onchange="handleFileSelect('ct-pdf','ct-pdf-list',1)">
-      <div class="file-list" id="ct-pdf-list"></div>
+      <label class="form-label">Notes / Lessons Learned</label>
+      <textarea class="form-control" id="ct-notes" rows="3" placeholder="What happened? What did you learn?"></textarea>
     </div>
     <div class="mt-3 flex gap-2">
       <button class="btn btn-success" onclick="confirmCloseTrade()">✅ Confirm Close</button>
@@ -770,23 +784,18 @@ select.form-control option{background:var(--card);}
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-view-files">
-  <div class="modal" style="max-width:800px;">
+<!-- View Trade Notes Modal -->
+<div class="modal-overlay" id="modal-view-notes">
+  <div class="modal" style="max-width:500px;">
     <div class="modal-header">
-      <div class="modal-title">Trade Files — <span id="vf-ticker-label"></span></div>
-      <button class="modal-close" onclick="closeModal('modal-view-files')">✕</button>
+      <div class="modal-title">Trade Notes — <span id="vn-ticker-label"></span></div>
+      <button class="modal-close" onclick="closeModal('modal-view-notes')">✕</button>
     </div>
-    <div id="vf-content"></div>
+    <div id="vn-content"></div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-lightbox" onclick="closeModal('modal-lightbox')">
-  <div style="max-width:90vw;max-height:90vh;">
-    <img id="lightbox-img" style="max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain;" src="">
-  </div>
-</div>
-
-<!-- MODE SWITCH CONFIRM -->
+<!-- Mode Switch Confirm -->
 <div class="confirm-overlay" id="confirm-mode-switch">
   <div class="confirm-box">
     <div class="confirm-icon" id="confirmIcon">⚠️</div>
@@ -799,77 +808,78 @@ select.form-control option{background:var(--card);}
   </div>
 </div>
 
+<!-- Firebase Status -->
 <div class="firebase-status" id="firebaseStatus">
-  <div class="spinner" style="width:12px;height:12px;"></div> Connecting to Firebase...
+  <div class="spinner" style="width:12px;height:12px;"></div> Connecting...
 </div>
 
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════
-let db, storage, firebase;
-let currentMode = localStorage.getItem('tj-mode') || 'paper';
-let pendingMode = null;
-let trades = [], watchlists = [], riskConfig = {};
-let pnlChartInstance = null;
-let currentChartFilter = '1W';
-let selectedFiles = { 'nt-charts':[], 'nt-pdf':[], 'ct-charts':[], 'ct-pdf':[] };
-let closingTradeData = null;
+// ══════════════════════════════════════════
+let db, firebase;
+let currentMode  = localStorage.getItem('tj-mode') || 'paper';
+let pendingMode  = null;
+let trades       = [];
+let watchlists   = [];
+let riskConfig   = {};
+let pnlChart     = null;
+let chartFilter  = '1W';
+let closingTrade = null;
 
-// Mode-prefixed collection names
 const col = name => `${currentMode}_${name}`;
 
-// ═══════════════════════════════════════
-// FIREBASE
-// ═══════════════════════════════════════
-window.addEventListener('firebaseReady', () => {
-  db = window._db; storage = window._storage; firebase = window._firebase;
-  document.getElementById('firebaseStatus').innerHTML = '<span style="color:var(--green)">●</span> Firebase Connected';
+// ══════════════════════════════════════════
+// FIREBASE BOOT
+// ══════════════════════════════════════════
+window.addEventListener('firebaseReady', async () => {
+  db       = window._db;
+  firebase = window._firebase;
+  document.getElementById('firebaseStatus').innerHTML =
+    '<span style="color:var(--green)">●</span> Firebase Connected';
   applyMode(currentMode, false);
-  init();
+  await Promise.all([loadRiskConfig(), loadTrades(), loadWatchlists()]);
+  refreshDashboard();
 });
 
-async function init() {
-  await loadRiskConfig();
-  await loadTrades();
-  await loadWatchlists();
-  refreshDashboard();
-}
-
+// ── Firebase helpers ──
 async function fbAdd(c, data) {
-  return await firebase.addDoc(firebase.collection(db, c), {...data, createdAt: Date.now()});
+  return firebase.addDoc(firebase.collection(db, c), { ...data, createdAt: Date.now() });
 }
 async function fbGetAll(c) {
   const snap = await firebase.getDocs(firebase.collection(db, c));
-  return snap.docs.map(d => ({id: d.id, ...d.data()}));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 async function fbUpdate(c, id, data) {
-  await firebase.updateDoc(firebase.doc(db, c, id), data);
+  return firebase.updateDoc(firebase.doc(db, c, id), data);
 }
 async function fbDelete(c, id) {
-  await firebase.deleteDoc(firebase.doc(db, c, id));
+  return firebase.deleteDoc(firebase.doc(db, c, id));
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // THEME
-// ═══════════════════════════════════════
-const savedTheme = localStorage.getItem('tj-theme') || 'dark';
-document.body.dataset.theme = savedTheme;
-document.getElementById('themeBtn').textContent = savedTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+// ══════════════════════════════════════════
+(function initTheme() {
+  const t = localStorage.getItem('tj-theme') || 'dark';
+  document.body.dataset.theme = t;
+  document.getElementById('themeBtn').textContent = t === 'dark' ? '☀️ Light' : '🌙 Dark';
+})();
 
 function toggleTheme() {
   const next = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
   document.body.dataset.theme = next;
   localStorage.setItem('tj-theme', next);
   document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
-  if (pnlChartInstance) renderPnLChart(currentChartFilter);
+  if (pnlChart) renderPnLChart(chartFilter);
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // MODE SWITCHING
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 function toggleModeDropdown() {
   document.getElementById('modeDropdown').classList.toggle('open');
 }
@@ -883,22 +893,20 @@ function requestModeSwitch(mode) {
   if (mode === currentMode) return;
   pendingMode = mode;
   const toLive = mode === 'live';
-  document.getElementById('confirmIcon').textContent = toLive ? '🔴' : '🟡';
-  document.getElementById('confirmTitle').textContent = toLive ? 'Switch to Live Trading?' : 'Switch to Paper Trading?';
-  document.getElementById('confirmSub').textContent = toLive
-    ? '⚠️ You are switching to LIVE trading mode. This tracks REAL money trades. All data (trades, watchlist, risk config) is completely separate from paper trading. Proceed carefully.'
-    : 'You are switching back to Paper Trading mode. Your live trading data remains safe and separate.';
+  document.getElementById('confirmIcon').textContent   = toLive ? '🔴' : '🟡';
+  document.getElementById('confirmTitle').textContent  = toLive ? 'Switch to Live Trading?' : 'Switch to Paper Trading?';
+  document.getElementById('confirmSub').textContent    = toLive
+    ? '⚠️ Switching to LIVE mode. This tracks REAL money trades. All data is completely separate from paper trading. Proceed carefully.'
+    : 'Switching back to Paper Trading. Your live data remains safe and separate.';
   const btn = document.getElementById('confirmSwitchBtn');
-  btn.className = toLive ? 'btn btn-danger' : 'btn btn-success';
+  btn.className   = toLive ? 'btn btn-danger' : 'btn btn-success';
   btn.textContent = toLive ? '🔴 Switch to LIVE' : '🟡 Switch to Paper';
   document.getElementById('confirm-mode-switch').classList.add('open');
 }
-
 function cancelModeSwitch() {
   pendingMode = null;
   document.getElementById('confirm-mode-switch').classList.remove('open');
 }
-
 async function confirmModeSwitch() {
   document.getElementById('confirm-mode-switch').classList.remove('open');
   if (!pendingMode) return;
@@ -911,27 +919,25 @@ async function applyMode(mode, reload) {
   localStorage.setItem('tj-mode', mode);
   document.body.dataset.mode = mode;
   const isPaper = mode === 'paper';
-  const label = isPaper ? 'Paper Trading' : 'Live Trading';
+  const label   = isPaper ? 'Paper Trading' : 'Live Trading';
 
   document.getElementById('modeBtnText').textContent = isPaper ? 'PAPER' : 'LIVE';
-  document.getElementById('bannerIcon').textContent = isPaper ? '🟡' : '🔴';
-  document.getElementById('bannerText').textContent = isPaper
+  document.getElementById('bannerIcon').textContent  = isPaper ? '🟡' : '🔴';
+  document.getElementById('bannerText').textContent  = isPaper
     ? 'PAPER TRADING MODE — Practice account. No real money at risk.'
     : '🔴  LIVE TRADING MODE — Real money account. Trade with discipline!';
   document.getElementById('opt-paper').classList.toggle('active', isPaper);
   document.getElementById('opt-live').classList.toggle('active', !isPaper);
-  document.getElementById('dashSub').textContent = `${label} Overview`;
-  document.getElementById('newTradeSub').textContent = `Logging to: ${label}`;
-  document.getElementById('watchlistSub').textContent = `${label} Watchlist`;
-  document.getElementById('riskConfigSub').textContent = `${label} — Risk Settings`;
-  document.getElementById('calcModeLabel').textContent = label;
+  document.getElementById('dashSub').textContent        = `${label} Overview`;
+  document.getElementById('newTradeSub').textContent    = `Logging to: ${label}`;
+  document.getElementById('watchlistSub').textContent   = `${label} Watchlist`;
+  document.getElementById('riskConfigSub').textContent  = `${label} — Risk Settings`;
+  document.getElementById('calcModeLabel').textContent  = label;
 
   if (reload) {
-    toast(`Switched to ${label} mode`, 'info');
+    toast(`Switched to ${label}`, 'info');
     trades = []; watchlists = []; riskConfig = {};
-    await loadRiskConfig();
-    await loadTrades();
-    await loadWatchlists();
+    await Promise.all([loadRiskConfig(), loadTrades(), loadWatchlists()]);
     refreshDashboard();
     renderOpenTrades();
     renderClosedTrades();
@@ -939,92 +945,55 @@ async function applyMode(mode, reload) {
   }
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // TABS
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 function showTab(id, el) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   if (el) el.classList.add('active');
-  if (id === 'dashboard') refreshDashboard();
-  if (id === 'open-trades') renderOpenTrades();
+  if (id === 'dashboard')    refreshDashboard();
+  if (id === 'open-trades')  renderOpenTrades();
   if (id === 'closed-trades') renderClosedTrades();
-  if (id === 'watchlist') renderWatchlists();
-  if (id === 'risk-config') loadRiskConfig();
+  if (id === 'watchlist')    renderWatchlists();
+  if (id === 'risk-config')  loadRiskConfig();
 }
-
 function switchToTab(id) {
-  const map = {'dashboard':0,'open-trades':1,'closed-trades':2,'new-trade':3,'watchlist':4,'risk-config':5};
-  const navTabs = document.querySelectorAll('.nav-tab');
-  showTab(id, navTabs[map[id]]);
+  const map = { 'dashboard':0,'open-trades':1,'closed-trades':2,'new-trade':3,'watchlist':4,'risk-config':5 };
+  showTab(id, document.querySelectorAll('.nav-tab')[map[id]]);
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // UI HELPERS
-// ═══════════════════════════════════════
-function toast(msg, type='success') {
+// ══════════════════════════════════════════
+function toast(msg, type = 'success') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = `toast show ${type}`;
   setTimeout(() => t.className = 'toast', 3200);
 }
-function openModal(id) { document.getElementById(id).classList.add('open'); }
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-// ═══════════════════════════════════════
-// FILE HANDLING
-// ═══════════════════════════════════════
-function handleFileSelect(inputId, listId, maxCount) {
-  const input = document.getElementById(inputId);
-  const files = Array.from(input.files);
-  selectedFiles[inputId] = [...(selectedFiles[inputId]||[]), ...files].slice(0, maxCount);
-  renderFileList(listId, inputId, selectedFiles[inputId]);
-  input.value = '';
-}
-function renderFileList(listId, inputId, files) {
-  const el = document.getElementById(listId); if (!el) return;
-  el.innerHTML = files.map((f,i) =>
-    `<div class="file-chip">${f.name.length>22?f.name.substring(0,22)+'...':f.name}
-    <button onclick="removeFile('${inputId}','${listId}',${i})">✕</button></div>`).join('');
-}
-function removeFile(inputId, listId, index) {
-  selectedFiles[inputId].splice(index, 1);
-  renderFileList(listId, inputId, selectedFiles[inputId]);
-}
-async function uploadFiles(files, path) {
-  if (!storage || !files || !files.length) return [];
-  const urls = [];
-  for (const file of files) {
-    try {
-      const storageRef = firebase.ref(storage, `${path}/${Date.now()}_${file.name}`);
-      await firebase.uploadBytes(storageRef, file);
-      const url = await firebase.getDownloadURL(storageRef);
-      urls.push({ name: file.name, url, type: file.type });
-    } catch(e) { console.error('Upload error:', e); }
-  }
-  return urls;
-}
-
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // RISK CONFIG
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 async function saveRiskConfig() {
-  const config = {
-    funding: parseFloat(document.getElementById('rc-funding').value)||0,
-    maxRiskPct: parseFloat(document.getElementById('rc-maxrisk').value)||0,
-    maxPosPct: parseFloat(document.getElementById('rc-maxpos').value)||0,
-    maxOpenTrades: parseInt(document.getElementById('rc-maxopen').value)||5,
-    autoStopPct: parseFloat(document.getElementById('rc-autostop').value)||50,
-    dailyLossPct: parseFloat(document.getElementById('rc-dailyloss').value)||5,
-    minRRR: parseFloat(document.getElementById('rc-minrrr').value)||2,
+  const cfg = {
+    funding:       parseFloat(document.getElementById('rc-funding').value)  || 0,
+    maxRiskPct:    parseFloat(document.getElementById('rc-maxrisk').value)  || 0,
+    maxPosPct:     parseFloat(document.getElementById('rc-maxpos').value)   || 0,
+    maxOpenTrades: parseInt(document.getElementById('rc-maxopen').value)    || 5,
+    autoStopPct:   parseFloat(document.getElementById('rc-autostop').value) || 50,
+    dailyLossPct:  parseFloat(document.getElementById('rc-dailyloss').value)|| 5,
+    minRRR:        parseFloat(document.getElementById('rc-minrrr').value)   || 2,
   };
   try {
     const existing = await fbGetAll(col('riskConfig'));
-    if (existing.length > 0) await fbUpdate(col('riskConfig'), existing[0].id, config);
-    else await fbAdd(col('riskConfig'), config);
-    riskConfig = config;
-    const mode = currentMode === 'paper' ? 'Paper' : 'Live';
-    toast(`${mode} risk config saved! ✅`);
+    if (existing.length) await fbUpdate(col('riskConfig'), existing[0].id, cfg);
+    else                 await fbAdd(col('riskConfig'), cfg);
+    riskConfig = cfg;
+    toast(`${currentMode === 'paper' ? 'Paper' : 'Live'} risk config saved ✅`);
     updateConfigPreviews();
   } catch(e) { toast('Error saving config', 'error'); }
 }
@@ -1032,38 +1001,41 @@ async function saveRiskConfig() {
 async function loadRiskConfig() {
   try {
     const data = await fbGetAll(col('riskConfig'));
-    if (data.length > 0) {
+    if (data.length) {
       riskConfig = data[0];
-      document.getElementById('rc-funding').value = riskConfig.funding||'';
-      document.getElementById('rc-maxrisk').value = riskConfig.maxRiskPct||'';
-      document.getElementById('rc-maxpos').value = riskConfig.maxPosPct||'';
-      document.getElementById('rc-maxopen').value = riskConfig.maxOpenTrades||'';
-      document.getElementById('rc-autostop').value = riskConfig.autoStopPct||'';
-      document.getElementById('rc-dailyloss').value = riskConfig.dailyLossPct||'';
-      document.getElementById('rc-minrrr').value = riskConfig.minRRR||'';
+      document.getElementById('rc-funding').value   = riskConfig.funding      || '';
+      document.getElementById('rc-maxrisk').value   = riskConfig.maxRiskPct   || '';
+      document.getElementById('rc-maxpos').value    = riskConfig.maxPosPct    || '';
+      document.getElementById('rc-maxopen').value   = riskConfig.maxOpenTrades|| '';
+      document.getElementById('rc-autostop').value  = riskConfig.autoStopPct  || '';
+      document.getElementById('rc-dailyloss').value = riskConfig.dailyLossPct || '';
+      document.getElementById('rc-minrrr').value    = riskConfig.minRRR       || '';
     } else {
+      riskConfig = {};
       ['rc-funding','rc-maxrisk','rc-maxpos','rc-maxopen','rc-autostop','rc-dailyloss','rc-minrrr']
         .forEach(id => document.getElementById(id).value = '');
-      riskConfig = {};
     }
     updateConfigPreviews();
   } catch(e) { console.log('No risk config yet for', currentMode); }
 }
 
 function updateConfigPreviews() {
-  const f = parseFloat(document.getElementById('rc-funding').value)||0;
-  const r = parseFloat(document.getElementById('rc-maxrisk').value)||0;
-  const p = parseFloat(document.getElementById('rc-maxpos').value)||0;
-  const d = parseFloat(document.getElementById('rc-dailyloss').value)||0;
-  document.getElementById('rc-maxrisk-preview').textContent = `= $${(f*r/100).toFixed(2)}`;
-  document.getElementById('rc-maxpos-preview').textContent = `= $${(f*p/100).toFixed(2)}`;
+  const f = parseFloat(document.getElementById('rc-funding').value)   || 0;
+  const r = parseFloat(document.getElementById('rc-maxrisk').value)   || 0;
+  const p = parseFloat(document.getElementById('rc-maxpos').value)    || 0;
+  const d = parseFloat(document.getElementById('rc-dailyloss').value) || 0;
+  document.getElementById('rc-maxrisk-preview').textContent   = `= $${(f*r/100).toFixed(2)}`;
+  document.getElementById('rc-maxpos-preview').textContent    = `= $${(f*p/100).toFixed(2)}`;
   document.getElementById('rc-dailyloss-preview').textContent = `= $${(f*d/100).toFixed(2)}`;
+  const closed = trades.filter(t => t.status === 'closed');
+  const balance = f + closed.reduce((s,t) => s+(t.pnl||0), 0);
+  document.getElementById('rc-balance-preview').textContent = f ? `$${balance.toFixed(2)}` : 'Set funding amount first';
   recalc();
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // RISK CALCULATOR
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 function recalc() {
   const sp = parseFloat(document.getElementById('nt-stockprice').value);
   const sl = parseFloat(document.getElementById('nt-stoploss').value);
@@ -1072,83 +1044,84 @@ function recalc() {
   const d  = parseFloat(document.getElementById('nt-delta').value);
   if (!sp || !op || !d) { clearCalc(); return; }
 
-  const funding = riskConfig.funding||0;
-  const maxRisk$ = (riskConfig.maxRiskPct||0)/100 * funding;
-  const maxPos$  = (riskConfig.maxPosPct||0)/100 * funding;
-  const gap = sl ? Math.abs(sp - sl) : 0;
-  const lossPC = gap * d * 100;
-  const byPos  = maxPos$ > 0 && op > 0 ? Math.floor(maxPos$ / (op*100)) : 0;
-  const byRisk = lossPC > 0 && maxRisk$ > 0 ? Math.floor(maxRisk$ / lossPC) : 0;
-  const rec = (byPos > 0 && byRisk > 0) ? Math.min(byPos, byRisk) : (byPos || byRisk);
-  const capital = rec * op * 100;
-  const maxLoss = rec * lossPC;
-  const tMove = tp && sp ? Math.abs(tp - sp) : 0;
-  const profit = tMove * d * 100 * rec;
+  const funding  = riskConfig.funding    || 0;
+  const maxRisk$ = (riskConfig.maxRiskPct|| 0) / 100 * funding;
+  const maxPos$  = (riskConfig.maxPosPct || 0) / 100 * funding;
+  const gap      = sl ? Math.abs(sp - sl) : 0;
+  const lossPC   = gap * d * 100;
+  const byPos    = maxPos$ > 0 && op > 0 ? Math.floor(maxPos$ / (op * 100)) : 0;
+  const byRisk   = lossPC > 0 && maxRisk$ > 0 ? Math.floor(maxRisk$ / lossPC) : 0;
+  const rec      = byPos > 0 && byRisk > 0 ? Math.min(byPos, byRisk) : (byPos || byRisk);
+  const capital  = rec * op * 100;
+  const maxLoss  = rec * lossPC;
+  const tMove    = tp && sp ? Math.abs(tp - sp) : 0;
+  const profit   = tMove * d * 100 * rec;
 
-  document.getElementById('c-gap').textContent = gap ? `$${gap.toFixed(2)}` : '—';
-  document.getElementById('c-losspercontract').textContent = lossPC ? `$${lossPC.toFixed(2)}` : '—';
-  document.getElementById('c-maxrisk').textContent = maxRisk$ ? `$${maxRisk$.toFixed(2)}` : 'Not configured';
-  document.getElementById('c-maxpos').textContent = maxPos$ ? `$${maxPos$.toFixed(2)}` : 'Not configured';
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('c-gap',              gap    ? `$${gap.toFixed(2)}`    : '—');
+  set('c-losspercontract',  lossPC ? `$${lossPC.toFixed(2)}` : '—');
+  set('c-maxrisk',  maxRisk$ ? `$${maxRisk$.toFixed(2)}`  : 'Not configured');
+  set('c-maxpos',   maxPos$  ? `$${maxPos$.toFixed(2)}`   : 'Not configured');
   if (lossPC && maxRisk$) {
     document.getElementById('c-riskcheck').innerHTML = lossPC <= maxRisk$
       ? '<span class="badge badge-green">🟢 SAFE</span>'
       : '<span class="badge badge-red">🔴 OVER LIMIT</span>';
-  } else document.getElementById('c-riskcheck').textContent = '—';
-  document.getElementById('c-bypos').textContent = byPos || '—';
-  document.getElementById('c-byrisk').textContent = byRisk || '—';
-  document.getElementById('c-recommended').textContent = rec || '—';
-  document.getElementById('c-capital').textContent = capital ? `$${capital.toFixed(2)}` : '—';
-  document.getElementById('c-maxloss').textContent = maxLoss ? `$${maxLoss.toFixed(2)}` : '—';
-  document.getElementById('c-profit').textContent = profit ? `$${profit.toFixed(2)}` : '—';
+  } else set('c-riskcheck', '—');
+  set('c-bypos',        byPos  || '—');
+  set('c-byrisk',       byRisk || '—');
+  set('c-recommended',  rec    || '—');
+  set('c-capital',  capital ? `$${capital.toFixed(2)}`  : '—');
+  set('c-maxloss',  maxLoss ? `$${maxLoss.toFixed(2)}`  : '—');
+  set('c-profit',   profit  ? `$${profit.toFixed(2)}`   : '—');
   if (rec > 0) document.getElementById('nt-contracts').value = rec;
 }
 
 function clearCalc() {
-  ['c-gap','c-losspercontract','c-maxrisk','c-riskcheck','c-maxpos','c-bypos',
-   'c-byrisk','c-recommended','c-capital','c-maxloss','c-profit']
+  ['c-gap','c-losspercontract','c-maxrisk','c-riskcheck','c-maxpos',
+   'c-bypos','c-byrisk','c-recommended','c-capital','c-maxloss','c-profit']
     .forEach(id => { const el = document.getElementById(id); if(el) el.textContent = '—'; });
 }
 
-// ═══════════════════════════════════════
-// TRADES
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
+// LOAD TRADES
+// ══════════════════════════════════════════
 async function loadTrades() {
-  try {
-    trades = await fbGetAll(col('trades'));
-  } catch(e) { console.error('Load trades:', e); trades = []; }
+  try { trades = await fbGetAll(col('trades')); }
+  catch(e) { console.error('Load trades:', e); trades = []; }
 }
 
+// ══════════════════════════════════════════
+// SUBMIT NEW TRADE
+// ══════════════════════════════════════════
 async function submitTrade() {
-  const ticker = document.getElementById('nt-ticker').value.trim().toUpperCase();
+  const ticker    = document.getElementById('nt-ticker').value.trim().toUpperCase();
   const direction = document.getElementById('nt-direction').value;
-  const sp = parseFloat(document.getElementById('nt-stockprice').value);
-  const op = parseFloat(document.getElementById('nt-optionprice').value);
+  const sp        = parseFloat(document.getElementById('nt-stockprice').value);
+  const op        = parseFloat(document.getElementById('nt-optionprice').value);
   const contracts = parseInt(document.getElementById('nt-contracts').value);
-  const strike = parseFloat(document.getElementById('nt-strike').value);
-  const expiry = document.getElementById('nt-expiry').value;
-  const delta = parseFloat(document.getElementById('nt-delta').value);
-  if (!ticker||!direction||!sp||!op||!contracts||!strike||!expiry||!delta) {
+  const strike    = parseFloat(document.getElementById('nt-strike').value);
+  const expiry    = document.getElementById('nt-expiry').value;
+  const delta     = parseFloat(document.getElementById('nt-delta').value);
+
+  if (!ticker || !direction || !sp || !op || !contracts || !strike || !expiry || !delta) {
     toast('Please fill all required (*) fields', 'error'); return;
   }
   const btn = event.currentTarget;
   btn.textContent = 'Saving...'; btn.disabled = true;
   try {
-    const path = `${currentMode}/trades/${ticker}`;
-    const entryCharts = await uploadFiles(selectedFiles['nt-charts']||[], path);
-    const entryPdf    = await uploadFiles(selectedFiles['nt-pdf']||[], path);
     await fbAdd(col('trades'), {
-      ticker, direction, stockPrice:sp, optionPrice:op, contracts, strike, expiry, delta,
-      theta: parseFloat(document.getElementById('nt-theta').value)||null,
-      iv: parseFloat(document.getElementById('nt-iv').value)||null,
-      stopLoss: parseFloat(document.getElementById('nt-stoploss').value)||null,
-      target: parseFloat(document.getElementById('nt-target').value)||null,
-      trigger: document.getElementById('nt-trigger').value,
-      conviction: document.getElementById('nt-conviction').value,
-      analysisDate: document.getElementById('nt-analysisdate').value,
-      entryDate: document.getElementById('nt-entrydate').value || new Date().toISOString().split('T')[0],
-      notes: document.getElementById('nt-notes').value,
-      entryCharts, entryPdf,
-      status: 'open',
+      ticker, direction,
+      stockPrice: sp, optionPrice: op, contracts, strike, expiry, delta,
+      theta:         parseFloat(document.getElementById('nt-theta').value)    || null,
+      iv:            parseFloat(document.getElementById('nt-iv').value)       || null,
+      stopLoss:      parseFloat(document.getElementById('nt-stoploss').value) || null,
+      target:        parseFloat(document.getElementById('nt-target').value)   || null,
+      trigger:       document.getElementById('nt-trigger').value,
+      conviction:    document.getElementById('nt-conviction').value,
+      analysisDate:  document.getElementById('nt-analysisdate').value,
+      entryDate:     document.getElementById('nt-entrydate').value || new Date().toISOString().split('T')[0],
+      notes:         document.getElementById('nt-notes').value,
+      status:        'open',
       capitalDeployed: contracts * op * 100,
       mode: currentMode,
     });
@@ -1161,55 +1134,61 @@ async function submitTrade() {
 }
 
 function resetTradeForm() {
-  ['nt-ticker','nt-direction','nt-stockprice','nt-optionprice','nt-contracts','nt-strike',
-   'nt-expiry','nt-delta','nt-theta','nt-iv','nt-stoploss','nt-target','nt-trigger',
-   'nt-conviction','nt-analysisdate','nt-notes'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.value = '';
-  });
-  ['nt-charts','nt-pdf'].forEach(k => selectedFiles[k]=[]);
-  ['nt-charts-list','nt-pdf-list'].forEach(id => document.getElementById(id).innerHTML='');
+  ['nt-ticker','nt-direction','nt-stockprice','nt-optionprice','nt-contracts',
+   'nt-strike','nt-expiry','nt-delta','nt-theta','nt-iv','nt-stoploss','nt-target',
+   'nt-trigger','nt-conviction','nt-analysisdate','nt-notes']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   clearCalc();
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // RENDER OPEN TRADES
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 function renderOpenTrades() {
   const open = trades.filter(t => t.status === 'open');
-  const modeLabel = currentMode === 'paper' ? 'Paper' : 'Live';
+  const lbl  = currentMode === 'paper' ? 'Paper' : 'Live';
   document.getElementById('openTradeCount').textContent =
-    `${open.length} open position${open.length!==1?'s':''} — ${modeLabel} account`;
+    `${open.length} open position${open.length!==1?'s':''} — ${lbl} account`;
   const tbody = document.getElementById('openTradesBody');
   if (!open.length) {
-    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state">
       <div class="empty-icon">${currentMode==='paper'?'📋':'📊'}</div>
-      <div class="empty-title">No open ${modeLabel} trades</div>
-      <div class="empty-sub">Go to Watchlist and click "Enter Trade", or use the New Trade tab</div>
+      <div class="empty-title">No open ${lbl} trades</div>
+      <div class="empty-sub">Go to Watchlist → Enter Trade, or use the + New Trade tab</div>
     </div></td></tr>`; return;
   }
   tbody.innerHTML = open.map(t => {
     const cap = (t.contracts * t.optionPrice * 100).toFixed(2);
+    const conv = t.conviction
+      ? `<span class="badge ${t.conviction==='High'?'badge-green':t.conviction==='Low'?'badge-red':'badge-yellow'}">${t.conviction}</span>`
+      : '—';
     return `<tr>
       <td><strong class="text-mono">${t.ticker}</strong></td>
       <td><span class="badge ${t.direction==='CALL'?'badge-green':'badge-red'}">${t.direction}</span></td>
-      <td>${t.entryDate||'—'}</td><td>${t.expiry||'—'}</td>
-      <td class="text-mono">$${t.strike}</td><td class="text-mono">$${t.optionPrice}</td>
-      <td class="text-mono">${t.contracts}</td><td class="text-mono">$${cap}</td>
+      <td>${t.entryDate||'—'}</td>
+      <td>${t.expiry||'—'}</td>
+      <td class="text-mono">$${t.strike}</td>
+      <td class="text-mono">$${t.optionPrice}</td>
+      <td class="text-mono">${t.contracts}</td>
+      <td class="text-mono">$${cap}</td>
       <td class="text-mono text-red">${t.stopLoss?'$'+t.stopLoss:'—'}</td>
       <td class="text-mono text-green">${t.target?'$'+t.target:'—'}</td>
+      <td>${conv}</td>
       <td><span class="badge badge-blue">Open</span></td>
-      <td><div class="flex gap-2">
-        <button class="btn btn-danger btn-xs" onclick="openCloseTrade('${t.id}')">Close</button>
-        <button class="btn btn-outline btn-xs" onclick="viewTradeFiles('${t.id}')">Files</button>
-        <button class="btn btn-outline btn-xs" onclick="deleteTrade('${t.id}')">🗑</button>
-      </div></td>
+      <td>
+        <div class="flex gap-2">
+          <button class="btn btn-danger btn-xs" onclick="openCloseTrade('${t.id}')">Close</button>
+          ${t.notes||t.trigger?`<button class="btn btn-outline btn-xs" onclick="viewNotes('${t.id}')">Notes</button>`:''}
+          <button class="btn btn-outline btn-xs" onclick="deleteTrade('${t.id}')">🗑</button>
+        </div>
+      </td>
     </tr>`;
   }).join('');
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // RENDER CLOSED TRADES
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 let closedFilter = 'all';
 function filterClosed(f, el) {
   closedFilter = f;
@@ -1219,162 +1198,139 @@ function filterClosed(f, el) {
 }
 function renderClosedTrades() {
   let closed = trades.filter(t => t.status === 'closed');
-  const modeLabel = currentMode === 'paper' ? 'Paper' : 'Live';
+  const lbl  = currentMode === 'paper' ? 'Paper' : 'Live';
   document.getElementById('closedTradeCount').textContent =
-    `${closed.length} closed trade${closed.length!==1?'s':''} — ${modeLabel} account`;
-  if (closedFilter === 'wins') closed = closed.filter(t => (t.pnl||0) >= 0);
-  if (closedFilter === 'losses') closed = closed.filter(t => (t.pnl||0) < 0);
+    `${closed.length} closed trade${closed.length!==1?'s':''} — ${lbl} account`;
+  if (closedFilter === 'wins')   closed = closed.filter(t => (t.pnl||0) >= 0);
+  if (closedFilter === 'losses') closed = closed.filter(t => (t.pnl||0) <  0);
   const tbody = document.getElementById('closedTradesBody');
   if (!closed.length) {
-    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state">
-      <div class="empty-icon">📊</div><div class="empty-title">No closed trades yet</div>
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">No closed trades yet</div>
       <div class="empty-sub">Closed trades will appear here</div>
     </div></td></tr>`; return;
   }
-  tbody.innerHTML = closed.map(t => {
-    const pnl = t.pnl||0; const s = pnl>=0?'+':'';
-    return `<tr>
-      <td><strong class="text-mono">${t.ticker}</strong></td>
-      <td><span class="badge ${t.direction==='CALL'?'badge-green':'badge-red'}">${t.direction}</span></td>
-      <td>${t.entryDate||'—'}</td><td>${t.exitDate||'—'}</td>
-      <td class="text-mono">$${t.strike}</td><td class="text-mono">$${t.optionPrice}</td>
-      <td class="text-mono">${t.exitPrice?'$'+t.exitPrice:'—'}</td>
-      <td class="text-mono">${t.contracts}</td>
-      <td class="text-mono fw-7 ${pnl>=0?'text-green':'text-red'}">${s}$${Math.abs(pnl).toFixed(2)}</td>
-      <td class="text-mono">${t.rrrAchieved?t.rrrAchieved.toFixed(2)+'x':'—'}</td>
-      <td><span class="badge badge-blue" style="font-size:10px;">${t.closeReason||'—'}</span></td>
-      <td><span class="badge ${pnl>=0?'badge-green':'badge-red'}">${pnl>=0?'WIN':'LOSS'}</span></td>
-      <td><div class="flex gap-2">
-        <button class="btn btn-outline btn-xs" onclick="viewTradeFiles('${t.id}')">📁 Review</button>
-        <button class="btn btn-outline btn-xs" onclick="deleteTrade('${t.id}')">🗑</button>
-      </div></td>
-    </tr>`;
-  }).join('');
+  tbody.innerHTML = closed
+    .sort((a,b) => new Date(b.exitDate||0) - new Date(a.exitDate||0))
+    .map(t => {
+      const pnl = t.pnl || 0;
+      const s   = pnl >= 0 ? '+' : '';
+      return `<tr>
+        <td><strong class="text-mono">${t.ticker}</strong></td>
+        <td><span class="badge ${t.direction==='CALL'?'badge-green':'badge-red'}">${t.direction}</span></td>
+        <td>${t.entryDate||'—'}</td>
+        <td>${t.exitDate||'—'}</td>
+        <td class="text-mono">$${t.strike}</td>
+        <td class="text-mono">$${t.optionPrice}</td>
+        <td class="text-mono">${t.exitPrice?'$'+t.exitPrice:'—'}</td>
+        <td class="text-mono">${t.contracts}</td>
+        <td class="text-mono fw-7 ${pnl>=0?'text-green':'text-red'}">${s}$${Math.abs(pnl).toFixed(2)}</td>
+        <td class="text-mono">${t.rrrAchieved?t.rrrAchieved.toFixed(2)+'x':'—'}</td>
+        <td><span class="badge badge-blue" style="font-size:10px;">${t.closeReason||'—'}</span></td>
+        <td><span class="badge ${pnl>=0?'badge-green':'badge-red'}">${pnl>=0?'WIN':'LOSS'}</span></td>
+        <td style="max-width:160px;font-size:12px;color:var(--text2);">${t.closeNotes?t.closeNotes.substring(0,60)+(t.closeNotes.length>60?'…':''):'—'}</td>
+        <td>
+          <div class="flex gap-2">
+            ${t.notes||t.trigger||t.closeNotes?`<button class="btn btn-outline btn-xs" onclick="viewNotes('${t.id}')">Notes</button>`:''}
+            <button class="btn btn-outline btn-xs" onclick="deleteTrade('${t.id}')">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
+// VIEW NOTES
+// ══════════════════════════════════════════
+function viewNotes(tradeId) {
+  const t = trades.find(x => x.id === tradeId); if (!t) return;
+  document.getElementById('vn-ticker-label').textContent = `${t.ticker} ${t.direction}`;
+  let html = '';
+  if (t.trigger) html += `<div style="margin-bottom:14px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:6px;">Trigger Condition</div>
+    <div style="font-size:13px;line-height:1.6;color:var(--text);">${t.trigger}</div></div>`;
+  if (t.notes) html += `<div style="margin-bottom:14px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:6px;">Entry Notes</div>
+    <div style="font-size:13px;line-height:1.6;color:var(--text);">${t.notes}</div></div>`;
+  if (t.closeNotes) html += `<div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:6px;">Close Notes / Lessons Learned</div>
+    <div style="font-size:13px;line-height:1.6;color:var(--text);">${t.closeNotes}</div></div>`;
+  if (!html) html = `<div class="empty-state" style="padding:30px 0;">
+    <div class="empty-icon">📝</div><div class="empty-title">No notes</div></div>`;
+  document.getElementById('vn-content').innerHTML = html;
+  openModal('modal-view-notes');
+}
+
+// ══════════════════════════════════════════
 // CLOSE TRADE
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 function openCloseTrade(tradeId) {
-  const trade = trades.find(t => t.id === tradeId); if (!trade) return;
-  closingTradeData = trade;
-  document.getElementById('ct-trade-id').value = tradeId;
-  document.getElementById('ct-ticker-label').textContent = `${trade.ticker} ${trade.direction}`;
-  document.getElementById('ct-exitdate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('ct-contracts').value = trade.contracts;
-  document.getElementById('ct-exitprice').value = '';
+  const t = trades.find(x => x.id === tradeId); if (!t) return;
+  closingTrade = t;
+  document.getElementById('ct-trade-id').value        = tradeId;
+  document.getElementById('ct-ticker-label').textContent = `${t.ticker} ${t.direction}`;
+  document.getElementById('ct-exitdate').value        = new Date().toISOString().split('T')[0];
+  document.getElementById('ct-contracts').value       = t.contracts;
+  document.getElementById('ct-exitprice').value       = '';
+  document.getElementById('ct-notes').value           = '';
   document.getElementById('ct-pnl-preview').style.display = 'none';
-  ['ct-charts','ct-pdf'].forEach(k => selectedFiles[k]=[]);
-  ['ct-charts-list','ct-pdf-list'].forEach(id => document.getElementById(id).innerHTML='');
   openModal('modal-close-trade');
 }
 
 function calcClosePnL() {
-  if (!closingTradeData) return;
+  if (!closingTrade) return;
   const ep = parseFloat(document.getElementById('ct-exitprice').value);
   const ct = parseInt(document.getElementById('ct-contracts').value);
   if (!ep || !ct) return;
-  const pnl = (ep - closingTradeData.optionPrice) * ct * 100;
-  const maxL = closingTradeData.stopLoss
-    ? Math.abs(closingTradeData.stockPrice - closingTradeData.stopLoss) * closingTradeData.delta * 100 * ct : 0;
-  const rrr = maxL > 0 ? Math.abs(pnl / maxL) : 0;
+  const pnl  = (ep - closingTrade.optionPrice) * ct * 100;
+  const maxL = closingTrade.stopLoss
+    ? Math.abs(closingTrade.stockPrice - closingTrade.stopLoss) * closingTrade.delta * 100 * ct : 0;
+  const rrr  = maxL > 0 ? Math.abs(pnl / maxL) : 0;
   document.getElementById('ct-pnl-preview').style.display = 'block';
-  document.getElementById('ct-entry-display').textContent = `$${closingTradeData.optionPrice}`;
-  document.getElementById('ct-exit-display').textContent = `$${ep}`;
+  document.getElementById('ct-entry-display').textContent     = `$${closingTrade.optionPrice}`;
+  document.getElementById('ct-exit-display').textContent      = `$${ep}`;
   document.getElementById('ct-contracts-display').textContent = ct;
-  const el = document.getElementById('ct-pnl-display');
-  el.textContent = `${pnl>=0?'+':''}$${pnl.toFixed(2)}`;
-  el.className = `calc-value ${pnl>=0?'green':'red'}`;
+  const pEl = document.getElementById('ct-pnl-display');
+  pEl.textContent = `${pnl>=0?'+':''}$${pnl.toFixed(2)}`;
+  pEl.className   = `calc-value ${pnl>=0?'green':'red'}`;
   document.getElementById('ct-rrr-display').textContent = rrr ? rrr.toFixed(2)+'x' : '—';
   document.getElementById('ct-result-display').innerHTML = pnl>=0
-    ? '<span class="badge badge-green">WIN</span>' : '<span class="badge badge-red">LOSS</span>';
+    ? '<span class="badge badge-green">WIN ✅</span>'
+    : '<span class="badge badge-red">LOSS ❌</span>';
 }
 
 async function confirmCloseTrade() {
   const tradeId = document.getElementById('ct-trade-id').value;
-  const ep = parseFloat(document.getElementById('ct-exitprice').value);
-  const ct = parseInt(document.getElementById('ct-contracts').value);
+  const ep      = parseFloat(document.getElementById('ct-exitprice').value);
+  const ct      = parseInt(document.getElementById('ct-contracts').value);
   if (!ep || !ct) { toast('Enter exit price and contracts', 'error'); return; }
-  const btn = event.currentTarget; btn.textContent='Closing...'; btn.disabled=true;
+  const btn = event.currentTarget; btn.textContent = 'Closing...'; btn.disabled = true;
   try {
-    const path = `${currentMode}/trades/${closingTradeData.ticker}/exit`;
-    const exitCharts = await uploadFiles(selectedFiles['ct-charts']||[], path);
-    const exitPdf    = await uploadFiles(selectedFiles['ct-pdf']||[], path);
-    const pnl = (ep - closingTradeData.optionPrice) * ct * 100;
-    const maxL = closingTradeData.stopLoss
-      ? Math.abs(closingTradeData.stockPrice - closingTradeData.stopLoss) * closingTradeData.delta * 100 * ct : 0;
+    const pnl  = (ep - closingTrade.optionPrice) * ct * 100;
+    const maxL = closingTrade.stopLoss
+      ? Math.abs(closingTrade.stockPrice - closingTrade.stopLoss) * closingTrade.delta * 100 * ct : 0;
     await fbUpdate(col('trades'), tradeId, {
-      status:'closed',
-      exitDate: document.getElementById('ct-exitdate').value,
-      exitPrice: ep, contractsClosed: ct,
-      closeReason: document.getElementById('ct-reason').value,
-      closeNotes: document.getElementById('ct-notes').value,
-      pnl, rrrAchieved: maxL>0?Math.abs(pnl/maxL):0,
-      exitCharts, exitPdf,
+      status:           'closed',
+      exitDate:         document.getElementById('ct-exitdate').value,
+      exitPrice:        ep,
+      contractsClosed:  ct,
+      closeReason:      document.getElementById('ct-reason').value,
+      closeNotes:       document.getElementById('ct-notes').value,
+      pnl,
+      rrrAchieved:      maxL > 0 ? Math.abs(pnl / maxL) : 0,
     });
     await loadTrades();
     closeModal('modal-close-trade');
     toast(`Trade closed: ${pnl>=0?'+':''}$${pnl.toFixed(2)}`);
     refreshDashboard(); renderOpenTrades(); renderClosedTrades();
-  } catch(e) { toast('Error: '+e.message,'error'); }
-  finally { btn.textContent='✅ Confirm Close'; btn.disabled=false; }
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  finally { btn.textContent = '✅ Confirm Close'; btn.disabled = false; }
 }
 
-// ═══════════════════════════════════════
-// VIEW FILES
-// ═══════════════════════════════════════
-function viewTradeFiles(tradeId) {
-  const trade = trades.find(t => t.id === tradeId); if (!trade) return;
-  document.getElementById('vf-ticker-label').textContent = `${trade.ticker} ${trade.direction} — ${trade.entryDate}`;
-  const isClosed = trade.status === 'closed';
-  const total = (trade.entryCharts||[]).length + (trade.entryPdf||[]).length +
-    (trade.exitCharts||[]).length + (trade.exitPdf||[]).length;
-  let html = '';
-  if (!total) {
-    html = `<div class="empty-state"><div class="empty-icon">📁</div>
-      <div class="empty-title">No files uploaded</div>
-      <div class="empty-sub">Upload charts and PDFs when entering or closing trades</div></div>`;
-  } else if (isClosed) {
-    html = `<div class="compare-grid">
-      <div class="compare-side">
-        <div class="compare-label entry">📊 Entry Charts</div>
-        <div class="media-grid">${renderFileItems(trade.entryCharts||[])}</div>
-        <div class="mt-3"><div class="compare-label entry">📄 Entry PDF</div>
-        <div class="media-grid">${renderFileItems(trade.entryPdf||[])}</div></div>
-      </div>
-      <div class="compare-side">
-        <div class="compare-label exit">📊 Exit Charts</div>
-        <div class="media-grid">${renderFileItems(trade.exitCharts||[])}</div>
-        <div class="mt-3"><div class="compare-label exit">📄 Exit PDF</div>
-        <div class="media-grid">${renderFileItems(trade.exitPdf||[])}</div></div>
-      </div>
-    </div>`;
-  } else {
-    html = `<div class="mt-2"><div class="compare-label entry">📊 Entry Charts</div>
-      <div class="media-grid">${renderFileItems(trade.entryCharts||[])}</div></div>
-      <div class="mt-3"><div class="compare-label entry">📄 Entry PDF</div>
-      <div class="media-grid">${renderFileItems(trade.entryPdf||[])}</div></div>`;
-  }
-  document.getElementById('vf-content').innerHTML = html;
-  openModal('modal-view-files');
-}
-
-function renderFileItems(files) {
-  if (!files||!files.length) return '<div style="color:var(--text3);font-size:12px;padding:8px;">No files</div>';
-  return files.map(f => (f.type==='application/pdf'||f.name?.endsWith('.pdf'))
-    ? `<div class="media-thumb" onclick="window.open('${f.url}','_blank')">
-        <div style="font-size:32px;">📄</div>
-        <div style="font-size:10px;margin-top:4px;color:var(--text2);">PDF</div></div>`
-    : `<div class="media-thumb" onclick="openLightbox('${f.url}')">
-        <img src="${f.url}" alt="${f.name}" loading="lazy"></div>`
-  ).join('');
-}
-
-function openLightbox(url) {
-  document.getElementById('lightbox-img').src = url;
-  openModal('modal-lightbox');
-}
-
+// ══════════════════════════════════════════
+// DELETE TRADE
+// ══════════════════════════════════════════
 async function deleteTrade(tradeId) {
   if (!confirm('Delete this trade? This cannot be undone.')) return;
   try {
@@ -1385,23 +1341,23 @@ async function deleteTrade(tradeId) {
   } catch(e) { toast('Error deleting trade', 'error'); }
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // WATCHLIST
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 async function loadWatchlists() {
-  try {
-    watchlists = await fbGetAll(col('watchlists'));
-  } catch(e) { watchlists = []; }
+  try { watchlists = await fbGetAll(col('watchlists')); }
+  catch(e) { watchlists = []; }
 }
 
 function renderWatchlists() {
   const grid = document.getElementById('watchlistGrid');
-  const modeLabel = currentMode === 'paper' ? 'Paper' : 'Live';
+  const lbl  = currentMode === 'paper' ? 'Paper' : 'Live';
   if (!watchlists.length) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">👀</div>
-      <div class="empty-title">No ${modeLabel} watchlists yet</div>
-      <div class="empty-sub">Create your first watchlist to start tracking stocks</div></div>`;
-    return;
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">👀</div>
+      <div class="empty-title">No ${lbl} watchlists yet</div>
+      <div class="empty-sub">Create your first watchlist to start tracking stocks</div>
+    </div>`; return;
   }
   grid.innerHTML = watchlists.map(wl => `
     <div class="watchlist-card">
@@ -1415,18 +1371,18 @@ function renderWatchlists() {
       ${!(wl.stocks||[]).length
         ? '<div style="padding:16px;color:var(--text3);font-size:13px;text-align:center;">No stocks added yet</div>'
         : (wl.stocks||[]).map((s,i) => `
-        <div class="watchlist-item">
-          <div>
-            <span class="ticker-badge">${s.ticker}</span>
-            <span style="margin-left:8px;color:var(--text2);font-size:12px;">${s.sector||''}</span>
-            ${s.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">${s.notes}</div>`:''}
-          </div>
-          <div class="flex gap-2 items-center">
-            <span class="badge badge-blue" style="font-size:10px;">T${s.tier}</span>
-            <button class="btn btn-success btn-xs" onclick="enterTradeFromWatchlist('${s.ticker}')">Enter Trade</button>
-            <button class="btn btn-danger btn-xs" onclick="removeStockFromWatchlist('${wl.id}',${i})">✕</button>
-          </div>
-        </div>`).join('')}
+          <div class="watchlist-item">
+            <div>
+              <span class="ticker-badge">${s.ticker}</span>
+              <span style="margin-left:8px;color:var(--text2);font-size:12px;">${s.sector||''}</span>
+              ${s.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">${s.notes}</div>`:''}
+            </div>
+            <div class="flex gap-2 items-center">
+              <span class="badge badge-blue" style="font-size:10px;">T${s.tier}</span>
+              <button class="btn btn-success btn-xs" onclick="enterTradeFromWatchlist('${s.ticker}')">Enter Trade</button>
+              <button class="btn btn-danger btn-xs" onclick="removeStock('${wl.id}',${i})">✕</button>
+            </div>
+          </div>`).join('')}
     </div>`).join('');
 }
 
@@ -1434,177 +1390,194 @@ async function createWatchlist() {
   const name = document.getElementById('wl-name').value.trim();
   if (!name) { toast('Enter a watchlist name', 'error'); return; }
   try {
-    await fbAdd(col('watchlists'), {name, stocks:[]});
+    await fbAdd(col('watchlists'), { name, stocks: [] });
     await loadWatchlists(); renderWatchlists();
     closeModal('modal-new-watchlist');
     document.getElementById('wl-name').value = '';
     toast(`Watchlist "${name}" created`);
-  } catch(e) { toast('Error', 'error'); }
+  } catch(e) { toast('Error creating watchlist', 'error'); }
 }
 
 async function deleteWatchlist(id) {
-  if (!confirm('Delete this watchlist?')) return;
-  try { await fbDelete(col('watchlists'), id); await loadWatchlists(); renderWatchlists(); toast('Deleted'); }
-  catch(e) { toast('Error', 'error'); }
+  if (!confirm('Delete this watchlist and all its stocks?')) return;
+  try {
+    await fbDelete(col('watchlists'), id);
+    await loadWatchlists(); renderWatchlists();
+    toast('Watchlist deleted');
+  } catch(e) { toast('Error', 'error'); }
 }
 
 function openAddStock(wlId) {
   document.getElementById('as-watchlist-id').value = wlId;
   document.getElementById('as-analyzed').value = new Date().toISOString().split('T')[0];
+  ['as-ticker','as-sector','as-notes'].forEach(id => document.getElementById(id).value='');
   openModal('modal-add-stock');
 }
 
 async function addStockToWatchlist() {
-  const wlId = document.getElementById('as-watchlist-id').value;
+  const wlId   = document.getElementById('as-watchlist-id').value;
   const ticker = document.getElementById('as-ticker').value.trim().toUpperCase();
   if (!ticker) { toast('Enter a ticker symbol', 'error'); return; }
   const wl = watchlists.find(w => w.id === wlId); if (!wl) return;
-  const stock = { ticker, sector:document.getElementById('as-sector').value,
-    tier:document.getElementById('as-tier').value,
-    lastAnalyzed:document.getElementById('as-analyzed').value,
-    notes:document.getElementById('as-notes').value };
+  const stock = {
+    ticker, sector: document.getElementById('as-sector').value,
+    tier: document.getElementById('as-tier').value,
+    lastAnalyzed: document.getElementById('as-analyzed').value,
+    notes: document.getElementById('as-notes').value,
+  };
   try {
-    await fbUpdate(col('watchlists'), wlId, {stocks:[...(wl.stocks||[]),stock]});
+    await fbUpdate(col('watchlists'), wlId, { stocks: [...(wl.stocks||[]), stock] });
     await loadWatchlists(); renderWatchlists();
     closeModal('modal-add-stock');
-    ['as-ticker','as-sector','as-notes'].forEach(id => document.getElementById(id).value='');
     toast(`${ticker} added to watchlist`);
   } catch(e) { toast('Error', 'error'); }
 }
 
-async function removeStockFromWatchlist(wlId, index) {
+async function removeStock(wlId, index) {
   const wl = watchlists.find(w => w.id === wlId); if (!wl) return;
   const stocks = [...(wl.stocks||[])]; stocks.splice(index, 1);
-  try { await fbUpdate(col('watchlists'), wlId, {stocks}); await loadWatchlists(); renderWatchlists(); toast('Removed'); }
-  catch(e) { toast('Error', 'error'); }
+  try {
+    await fbUpdate(col('watchlists'), wlId, { stocks });
+    await loadWatchlists(); renderWatchlists();
+    toast('Stock removed');
+  } catch(e) { toast('Error', 'error'); }
 }
 
 function enterTradeFromWatchlist(ticker) {
   switchToTab('new-trade');
-  document.getElementById('nt-ticker').value = ticker;
-  document.getElementById('nt-entrydate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('nt-ticker').value       = ticker;
+  document.getElementById('nt-entrydate').value    = new Date().toISOString().split('T')[0];
   document.getElementById('nt-analysisdate').value = new Date().toISOString().split('T')[0];
   setTimeout(() => document.getElementById('nt-stockprice').focus(), 100);
-  const mode = currentMode === 'paper' ? '📋 Paper' : '🔴 Live';
-  toast(`${ticker} loaded → ${mode} trade entry`, 'info');
+  const m = currentMode === 'paper' ? '📋 Paper' : '🔴 Live';
+  toast(`${ticker} loaded → ${m} trade entry`, 'info');
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // DASHBOARD
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 function refreshDashboard() {
-  const open = trades.filter(t => t.status==='open');
-  const closed = trades.filter(t => t.status==='closed');
-  const wins = closed.filter(t => (t.pnl||0)>=0);
-  const losses = closed.filter(t => (t.pnl||0)<0);
-  const realized = closed.reduce((s,t)=>s+(t.pnl||0),0);
-  const capital = open.reduce((s,t)=>s+(t.capitalDeployed||0),0);
-  const winRate = closed.length ? (wins.length/closed.length*100) : 0;
-  const balance = (riskConfig.funding||0) + realized;
-  const avgWin = wins.length ? wins.reduce((s,t)=>s+t.pnl,0)/wins.length : 0;
-  const avgLoss = losses.length ? Math.abs(losses.reduce((s,t)=>s+t.pnl,0)/losses.length) : 0;
+  const open   = trades.filter(t => t.status === 'open');
+  const closed = trades.filter(t => t.status === 'closed');
+  const wins   = closed.filter(t => (t.pnl||0) >= 0);
+  const losses = closed.filter(t => (t.pnl||0) <  0);
+  const realized = closed.reduce((s,t) => s + (t.pnl||0), 0);
+  const capital  = open.reduce((s,t)   => s + (t.capitalDeployed||0), 0);
+  const winRate  = closed.length ? (wins.length / closed.length * 100) : 0;
+  const balance  = (riskConfig.funding||0) + realized;
+  const avgWin   = wins.length   ? wins.reduce((s,t)   => s+t.pnl, 0) / wins.length   : 0;
+  const avgLoss  = losses.length ? Math.abs(losses.reduce((s,t) => s+t.pnl, 0) / losses.length) : 0;
 
-  document.getElementById('m-open').textContent = open.length;
+  document.getElementById('m-open').textContent    = open.length;
   document.getElementById('m-capital').textContent = `$${capital.toFixed(2)}`;
   document.getElementById('m-unrealized').textContent = '—';
   const rEl = document.getElementById('m-realized');
   rEl.textContent = `${realized>=0?'+':''}$${realized.toFixed(2)}`;
-  rEl.className = `metric-value text-mono ${realized>=0?'green':'red'}`;
-  document.getElementById('m-winrate').textContent = `${winRate.toFixed(1)}%`;
-  document.getElementById('m-balance').textContent = `$${balance.toFixed(2)}`;
-  document.getElementById('m-total').textContent = trades.length;
+  rEl.className   = `metric-value text-mono ${realized>=0?'green':'red'}`;
+  document.getElementById('m-winrate').textContent  = `${winRate.toFixed(1)}%`;
+  document.getElementById('m-balance').textContent  = `$${balance.toFixed(2)}`;
+  document.getElementById('m-total').textContent    = trades.length;
   document.getElementById('m-avgwl').innerHTML =
     `<span class="text-green">$${avgWin.toFixed(0)}</span> / <span class="text-red">$${avgLoss.toFixed(0)}</span>`;
 
-  renderPnLChart(currentChartFilter);
+  renderPnLChart(chartFilter);
   renderMonthlyBreakdown();
 }
 
 function setChartFilter(f, el) {
-  currentChartFilter = f;
+  chartFilter = f;
   document.querySelectorAll('.chart-filter').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   renderPnLChart(f);
 }
 
 function renderPnLChart(filter) {
-  const closed = trades.filter(t => t.status==='closed' && t.exitDate);
-  const cutoffs = {'1W':7,'1M':30,'3M':90,'6M':180,'ALL':99999};
-  const days = cutoffs[filter]||30;
-  const now = new Date();
+  const closed  = trades.filter(t => t.status==='closed' && t.exitDate);
+  const cutoffs = { '1W':7,'1M':30,'3M':90,'6M':180,'ALL':99999 };
+  const now     = new Date();
   const filtered = closed
-    .filter(t => (now - new Date(t.exitDate))/86400000 <= days)
+    .filter(t => (now - new Date(t.exitDate)) / 86400000 <= (cutoffs[filter]||30))
     .sort((a,b) => new Date(a.exitDate) - new Date(b.exitDate));
-  const labels=[], data=[], balances=[];
-  let running = riskConfig.funding||0;
+
+  const labels = [], data = [], balances = [];
+  let running = riskConfig.funding || 0;
   filtered.forEach(t => {
     labels.push(t.exitDate); data.push(t.pnl||0);
-    running += (t.pnl||0); balances.push(running);
+    running += (t.pnl||0); balances.push(parseFloat(running.toFixed(2)));
   });
+
   const dark = document.body.dataset.theme === 'dark';
-  const gc = dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';
-  const tc = dark?'#8892b0':'#4a5578';
+  const gc = dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)';
+  const tc = dark ? '#8892b0' : '#4a5578';
   const ctx = document.getElementById('pnlChart').getContext('2d');
-  if (pnlChartInstance) pnlChartInstance.destroy();
-  pnlChartInstance = new Chart(ctx, {
-    type:'bar',
-    data:{labels, datasets:[
-      {type:'bar', label:'Trade P&L', data,
-        backgroundColor: data.map(v=>v>=0?'rgba(0,214,143,.7)':'rgba(255,77,106,.7)'),
-        borderRadius:4, yAxisID:'y'},
-      {type:'line', label:'Account Balance', data:balances,
-        borderColor:'#3b7eff', borderWidth:2, pointRadius:3, fill:false, tension:.3, yAxisID:'y1'}
+  if (pnlChart) pnlChart.destroy();
+  pnlChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [
+      { type:'bar',  label:'Trade P&L',      data,
+        backgroundColor: data.map(v => v>=0?'rgba(0,214,143,.75)':'rgba(255,77,106,.75)'),
+        borderRadius:4, yAxisID:'y' },
+      { type:'line', label:'Account Balance', data:balances,
+        borderColor:'#3b7eff', borderWidth:2, pointRadius:3,
+        fill:false, tension:.3, yAxisID:'y1' }
     ]},
-    options:{responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:tc, font:{size:11}}}},
-      scales:{
-        x:{grid:{color:gc}, ticks:{color:tc, font:{size:10}}},
-        y:{grid:{color:gc}, ticks:{color:tc, font:{size:10}, callback:v=>'$'+v}},
-        y1:{position:'right', grid:{display:false}, ticks:{color:'#3b7eff', font:{size:10}, callback:v=>'$'+v}}
-      }}
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:tc, font:{ size:11 } } } },
+      scales: {
+        x:  { grid:{ color:gc }, ticks:{ color:tc, font:{ size:10 } } },
+        y:  { grid:{ color:gc }, ticks:{ color:tc, font:{ size:10 }, callback: v=>'$'+v } },
+        y1: { position:'right', grid:{ display:false },
+              ticks:{ color:'#3b7eff', font:{ size:10 }, callback: v=>'$'+v } }
+      }
+    }
   });
 }
 
 function renderMonthlyBreakdown() {
-  const closed = trades.filter(t => t.status==='closed' && t.exitDate);
+  const closed  = trades.filter(t => t.status==='closed' && t.exitDate);
   const monthly = {};
   closed.forEach(t => {
-    const key = t.exitDate.substring(0,7);
-    if (!monthly[key]) monthly[key] = {trades:0,wins:0,losses:0,pnl:0};
+    const key = t.exitDate.substring(0, 7);
+    if (!monthly[key]) monthly[key] = { trades:0, wins:0, losses:0, pnl:0 };
     monthly[key].trades++;
-    if ((t.pnl||0)>=0) monthly[key].wins++; else monthly[key].losses++;
+    if ((t.pnl||0) >= 0) monthly[key].wins++; else monthly[key].losses++;
     monthly[key].pnl += (t.pnl||0);
   });
   const rows = Object.keys(monthly).sort().reverse().map(key => {
     const m = monthly[key];
-    const wr = m.trades?(m.wins/m.trades*100).toFixed(0):0;
-    const s = m.pnl>=0?'+':'';
+    const wr = m.trades ? (m.wins/m.trades*100).toFixed(0) : 0;
+    const s  = m.pnl >= 0 ? '+' : '';
     return `<tr>
-      <td>${key}</td><td class="text-mono">${m.trades}</td>
-      <td class="text-mono text-green">${m.wins}</td><td class="text-mono text-red">${m.losses}</td>
+      <td>${key}</td>
+      <td class="text-mono">${m.trades}</td>
+      <td class="text-mono text-green">${m.wins}</td>
+      <td class="text-mono text-red">${m.losses}</td>
       <td class="text-mono">${wr}%</td>
       <td class="text-mono fw-7 ${m.pnl>=0?'text-green':'text-red'}">${s}$${Math.abs(m.pnl).toFixed(2)}</td>
     </tr>`;
   }).join('');
   document.getElementById('monthlyBody').innerHTML = rows ||
-    '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px;">No closed trades yet</td></tr>';
+    '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px;">No closed trades yet</td></tr>';
 }
 
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════
 // INIT
-// ═══════════════════════════════════════
-document.getElementById('nt-entrydate').value = new Date().toISOString().split('T')[0];
+// ══════════════════════════════════════════
+document.getElementById('nt-entrydate').value    = new Date().toISOString().split('T')[0];
 document.getElementById('nt-analysisdate').value = new Date().toISOString().split('T')[0];
 
 function checkLayout() {
   const l = document.getElementById('tradeEntryLayout');
   if (l) l.style.gridTemplateColumns = window.innerWidth < 900 ? '1fr' : '1fr 340px';
+  const rc = document.getElementById('riskConfigLayout');
+  if (rc) rc.style.gridTemplateColumns = window.innerWidth < 700 ? '1fr' : '1fr 1fr';
 }
-window.addEventListener('resize', checkLayout); checkLayout();
+window.addEventListener('resize', checkLayout);
+checkLayout();
 
 document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', function(e) {
-    if (e.target === this && this.id !== 'modal-lightbox') closeModal(this.id);
+    if (e.target === this) closeModal(this.id);
   });
 });
 </script>
