@@ -325,8 +325,8 @@ select.form-control option{background:var(--card);}
     </div>
     <div class="metrics-grid">
       <div class="metric-card">        <div class="metric-label">Open Trades</div>    <div class="metric-value" id="m-open">—</div></div>
-      <div class="metric-card green">  <div class="metric-label">Capital Deployed</div><div class="metric-value text-mono" id="m-capital">—</div></div>
-      <div class="metric-card red">    <div class="metric-label">Capital at Risk</div><div class="metric-value text-mono" id="m-atrisk">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;">Max loss if all stops hit</div></div>
+      <div class="metric-card green">  <div class="metric-label">Capital Deployed</div><div class="metric-value text-mono" id="m-capital">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;">Filled orders only</div></div>
+      <div class="metric-card red">    <div class="metric-label">Capital at Risk</div><div class="metric-value text-mono" id="m-atrisk">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;" id="m-atrisk-sub">Filled orders only</div></div>
       <div class="metric-card">        <div class="metric-label">Unrealized P&amp;L</div> <div class="metric-value text-mono" id="m-unrealized">—</div></div>
       <div class="metric-card green">  <div class="metric-label">Realized P&amp;L</div>   <div class="metric-value text-mono" id="m-realized">—</div></div>
       <div class="metric-card">        <div class="metric-label">Win Rate</div>        <div class="metric-value" id="m-winrate">—</div></div>
@@ -513,6 +513,13 @@ select.form-control option{background:var(--card);}
             <div class="form-group">
               <label class="form-label">Number of Contracts *</label>
               <input class="form-control" type="number" id="nt-contracts" placeholder="1" min="1" step="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Order Status</label>
+              <select class="form-control" id="nt-orderstatus">
+                <option value="pending">⏳ Pending Fill — order not yet executed</option>
+                <option value="filled">✅ Filled / Live — order executed</option>
+              </select>
             </div>
             <div class="form-group" style="grid-column:1/-1;">
               <label class="form-label">Notes</label>
@@ -915,15 +922,31 @@ select.form-control option{background:var(--card);}
 
         <!-- SECTION D -->
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
-          <div class="card-title">Section D — Position</div>
+          <div class="card-title">Section D — Position & Status</div>
           <div class="form-grid form-grid-2">
             <div class="form-group">
               <label class="form-label">Number of Contracts *</label>
               <input class="form-control" type="number" id="et-contracts" placeholder="1" min="1" step="1">
             </div>
+            <div class="form-group">
+              <label class="form-label">Order Status</label>
+              <select class="form-control" id="et-orderstatus">
+                <option value="pending">⏳ Pending Fill — not yet executed</option>
+                <option value="filled">✅ Filled / Live — order executed</option>
+              </select>
+            </div>
             <div class="form-group" style="grid-column:1/-1;">
               <label class="form-label">Notes</label>
               <textarea class="form-control" id="et-notes" rows="2" placeholder="Notes..."></textarea>
+            </div>
+          </div>
+          <div style="margin-top:12px;padding:12px;border-radius:8px;background:var(--card);border:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:6px;">Quick Status Toggle</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-outline btn-sm" onclick="quickSetStatus('pending')" id="et-btn-pending"
+                style="border-color:var(--yellow);color:var(--yellow);">⏳ Set Pending</button>
+              <button class="btn btn-sm" onclick="quickSetStatus('filled')" id="et-btn-filled"
+                style="background:var(--green2);color:#fff;">✅ Set Filled / Live</button>
             </div>
           </div>
         </div>
@@ -1278,6 +1301,7 @@ async function submitTrade() {
       entryDate:     document.getElementById('nt-entrydate').value || new Date().toISOString().split('T')[0],
       notes:         document.getElementById('nt-notes').value,
       status:        'open',
+      orderStatus:   document.getElementById('nt-orderstatus').value || 'pending',
       capitalDeployed: contracts * op * 100,
       mode: currentMode,
     });
@@ -1294,6 +1318,7 @@ function resetTradeForm() {
    'nt-strike','nt-expiry','nt-delta','nt-theta','nt-iv','nt-stoploss','nt-target',
    'nt-trigger','nt-conviction','nt-analysisdate','nt-notes']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  const osEl = document.getElementById('nt-orderstatus'); if(osEl) osEl.value='pending';
   clearCalc();
 }
 
@@ -1337,7 +1362,11 @@ function renderOpenTrades() {
       <td class="text-mono text-red">${t.stopLoss?'$'+t.stopLoss:'—'}</td>
       <td class="text-mono text-green">${t.target?'$'+t.target:'—'}</td>
       <td>${conv}</td>
-      <td><span class="badge badge-blue">Open</span></td>
+      <td>
+        ${(t.orderStatus==='filled'||!t.orderStatus)
+          ? '<span class="badge badge-green">✅ Live</span>'
+          : '<span class="badge badge-yellow">⏳ Pending</span>'}
+      </td>
       <td>
         <div class="flex gap-2">
           <button class="btn btn-primary btn-xs" onclick="openEditTrade('${t.id}')">✏️ Edit</button>
@@ -1626,27 +1655,37 @@ function refreshDashboard() {
   const wins   = closed.filter(t => (t.pnl||0) >= 0);
   const losses = closed.filter(t => (t.pnl||0) <  0);
   const realized = closed.reduce((s,t) => s + (t.pnl||0), 0);
-  const capital  = open.reduce((s,t)   => s + (t.capitalDeployed||0), 0);
+  const capital  = open.reduce((s,t)   => s + (t.capitalDeployed||0), 0); // total (for reference)
   const winRate  = closed.length ? (wins.length / closed.length * 100) : 0;
   const balance  = (riskConfig.funding||0) + realized;
   const avgWin   = wins.length   ? wins.reduce((s,t)   => s+t.pnl, 0) / wins.length   : 0;
   const avgLoss  = losses.length ? Math.abs(losses.reduce((s,t) => s+t.pnl, 0) / losses.length) : 0;
 
-  // Capital at Risk = sum of (gap to stop × delta × 100 × contracts) for each open trade
-  const capitalAtRisk = open.reduce((sum, t) => {
+  // Separate filled vs pending orders
+  const filledOpen  = open.filter(t => t.orderStatus === 'filled' || !t.orderStatus);
+  const pendingOpen = open.filter(t => t.orderStatus === 'pending');
+
+  // Capital Deployed — filled orders only
+  const capitalFilled = filledOpen.reduce((s,t) => s + (t.capitalDeployed||0), 0);
+
+  // Capital at Risk — filled orders only (gap to stop × delta × 100 × contracts)
+  const capitalAtRisk = filledOpen.reduce((sum, t) => {
     if (!t.stockPrice || !t.stopLoss || !t.delta) return sum;
     const gap = Math.abs(t.stockPrice - t.stopLoss);
     const lossPerContract = gap * t.delta * 100;
     return sum + (lossPerContract * t.contracts);
   }, 0);
-  const maxRiskBudget = (riskConfig.maxRiskPct||0) / 100 * (riskConfig.funding||0) * (open.length||1);
+  const maxRiskBudget = (riskConfig.maxRiskPct||0) / 100 * (riskConfig.funding||0) * (filledOpen.length||1);
   const riskPct = maxRiskBudget > 0 ? capitalAtRisk / maxRiskBudget * 100 : 0;
 
   document.getElementById('m-open').textContent    = open.length;
-  document.getElementById('m-capital').textContent = `$${capital.toFixed(2)}`;
+  document.getElementById('m-capital').textContent = `$${capitalFilled.toFixed(2)}`;
   const riskEl = document.getElementById('m-atrisk');
   riskEl.textContent = capitalAtRisk > 0 ? `$${capitalAtRisk.toFixed(2)}` : '$0.00';
   riskEl.className = `metric-value text-mono ${riskPct > 80 ? 'red' : riskPct > 50 ? 'yellow' : 'green'}`;
+  // Sub-label: X filled · X pending
+  const subEl = document.getElementById('m-atrisk-sub');
+  if (subEl) subEl.textContent = `${filledOpen.length} filled · ${pendingOpen.length} pending`;
   document.getElementById('m-unrealized').textContent = '—';
   const rEl = document.getElementById('m-realized');
   rEl.textContent = `${realized>=0?'+':''}$${realized.toFixed(2)}`;
@@ -1738,6 +1777,26 @@ function renderMonthlyBreakdown() {
 }
 
 
+
+// Quick status toggle in edit modal
+function quickSetStatus(status) {
+  const sel = document.getElementById('et-orderstatus');
+  if (sel) sel.value = status;
+  // Visual feedback on buttons
+  const btnPending = document.getElementById('et-btn-pending');
+  const btnFilled  = document.getElementById('et-btn-filled');
+  if (btnPending && btnFilled) {
+    if (status === 'filled') {
+      btnFilled.style.outline  = '2px solid var(--green)';
+      btnPending.style.outline = 'none';
+    } else {
+      btnPending.style.outline = '2px solid var(--yellow)';
+      btnFilled.style.outline  = 'none';
+    }
+  }
+  toast(status === 'filled' ? '✅ Status set to Filled / Live' : '⏳ Status set to Pending Fill', 'info');
+}
+
 // ══════════════════════════════════════════
 // EDIT TRADE — Open modal pre-populated
 // ══════════════════════════════════════════
@@ -1749,6 +1808,7 @@ function openEditTrade(tradeId) {
   document.getElementById('et-title').textContent       = `✏️ Edit Trade — ${t.ticker} ${t.direction}`;
   document.getElementById('et-ticker').value            = t.ticker;
   document.getElementById('et-direction-display').value = t.direction;
+  document.getElementById('et-orderstatus').value       = t.orderStatus || 'pending';
   document.getElementById('et-stockprice').value        = t.stockPrice   || '';
   document.getElementById('et-conviction').value        = t.conviction   || '';
   document.getElementById('et-analysisdate').value      = t.analysisDate || '';
@@ -1830,11 +1890,13 @@ async function updateTrade() {
   const btn = event.currentTarget;
   btn.textContent = 'Saving...'; btn.disabled = true;
   try {
+    const newOrderStatus = document.getElementById('et-orderstatus').value || 'pending';
     await fbUpdate(col('trades'), tradeId, {
       stockPrice:      sp,
       optionPrice:     op,
       contracts:       contracts,
       delta:           delta,
+      orderStatus:     newOrderStatus,
       strike:          parseFloat(document.getElementById('et-strike').value)    || null,
       expiry:          document.getElementById('et-expiry').value,
       theta:           parseFloat(document.getElementById('et-theta').value)     || null,
