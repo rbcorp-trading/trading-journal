@@ -326,8 +326,9 @@ select.form-control option{background:var(--card);}
     <div class="metrics-grid">
       <div class="metric-card">        <div class="metric-label">Open Trades</div>    <div class="metric-value" id="m-open">—</div></div>
       <div class="metric-card green">  <div class="metric-label">Capital Deployed</div><div class="metric-value text-mono" id="m-capital">—</div></div>
-      <div class="metric-card">        <div class="metric-label">Unrealized P&L</div> <div class="metric-value text-mono" id="m-unrealized">—</div></div>
-      <div class="metric-card green">  <div class="metric-label">Realized P&L</div>   <div class="metric-value text-mono" id="m-realized">—</div></div>
+      <div class="metric-card red">    <div class="metric-label">Capital at Risk</div><div class="metric-value text-mono" id="m-atrisk">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;">Max loss if all stops hit</div></div>
+      <div class="metric-card">        <div class="metric-label">Unrealized P&amp;L</div> <div class="metric-value text-mono" id="m-unrealized">—</div></div>
+      <div class="metric-card green">  <div class="metric-label">Realized P&amp;L</div>   <div class="metric-value text-mono" id="m-realized">—</div></div>
       <div class="metric-card">        <div class="metric-label">Win Rate</div>        <div class="metric-value" id="m-winrate">—</div></div>
       <div class="metric-card">        <div class="metric-label">Account Balance</div><div class="metric-value text-mono" id="m-balance">—</div></div>
       <div class="metric-card">        <div class="metric-label">Total Trades</div>   <div class="metric-value" id="m-total">—</div></div>
@@ -366,7 +367,7 @@ select.form-control option{background:var(--card);}
         <thead><tr>
           <th>Ticker</th><th>Dir</th><th>Entry Date</th><th>Expiry</th>
           <th>Strike</th><th>Entry $</th><th>Contracts</th><th>Capital</th>
-          <th>Stop</th><th>Target</th><th>Conviction</th><th>Status</th><th>Actions</th>
+          <th>Max Loss</th><th>Stop</th><th>Target</th><th>Conviction</th><th>Status</th><th>Actions</th>
         </tr></thead>
         <tbody id="openTradesBody">
           <tr><td colspan="13" class="loading"><div class="spinner"></div> Loading...</td></tr>
@@ -809,6 +810,161 @@ select.form-control option{background:var(--card);}
 </div>
 
 <!-- Firebase Status -->
+
+<!-- ════════ EDIT TRADE MODAL ════════ -->
+<div class="modal-overlay" id="modal-edit-trade">
+  <div class="modal" style="max-width:900px;width:95vw;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="et-title">✏️ Edit Trade — AAPL CALL</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px;">All fields editable except Ticker and Direction</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-edit-trade')">✕</button>
+    </div>
+    <input type="hidden" id="et-trade-id">
+
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;" id="editTradeLayout">
+      <!-- LEFT: FORM -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <!-- SECTION A -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
+          <div class="card-title">Section A — Stock & Setup</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Ticker Symbol</label>
+              <input class="form-control" id="et-ticker" disabled style="opacity:.5;cursor:not-allowed;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Trade Direction</label>
+              <input class="form-control" id="et-direction-display" disabled style="opacity:.5;cursor:not-allowed;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Current Stock Price ($) *</label>
+              <input class="form-control" type="number" id="et-stockprice" placeholder="100.00" step="0.01" oninput="editRecalc()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Conviction Level</label>
+              <select class="form-control" id="et-conviction">
+                <option value="">Select...</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Analysis Date</label>
+              <input class="form-control" type="date" id="et-analysisdate">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Entry Date</label>
+              <input class="form-control" type="date" id="et-entrydate">
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Trigger Condition</label>
+              <textarea class="form-control" id="et-trigger" rows="2" placeholder="Describe your entry trigger..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION B -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
+          <div class="card-title">Section B — Option Details</div>
+          <div class="form-grid form-grid-3">
+            <div class="form-group">
+              <label class="form-label">Strike Price ($)</label>
+              <input class="form-control" type="number" id="et-strike" placeholder="100.00" step="0.50">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Expiry Date</label>
+              <input class="form-control" type="date" id="et-expiry">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Option Entry Price ($) *</label>
+              <input class="form-control" type="number" id="et-optionprice" placeholder="3.00" step="0.01" oninput="editRecalc()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Delta *</label>
+              <input class="form-control" type="number" id="et-delta" placeholder="0.60" step="0.01" oninput="editRecalc()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Theta</label>
+              <input class="form-control" type="number" id="et-theta" placeholder="-0.05" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Implied Volatility (%)</label>
+              <input class="form-control" type="number" id="et-iv" placeholder="25.0" step="0.1">
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION C -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
+          <div class="card-title">Section C — Risk Parameters</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Stop Loss Stock Price ($)</label>
+              <input class="form-control" type="number" id="et-stoploss" placeholder="98.00" step="0.01" oninput="editRecalc()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Stock Price ($)</label>
+              <input class="form-control" type="number" id="et-target" placeholder="105.00" step="0.01" oninput="editRecalc()">
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION D -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
+          <div class="card-title">Section D — Position</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Number of Contracts *</label>
+              <input class="form-control" type="number" id="et-contracts" placeholder="1" min="1" step="1">
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" id="et-notes" rows="2" placeholder="Notes..."></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: LIVE CALCULATOR -->
+      <div>
+        <div style="position:sticky;top:10px;">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:10px;">⚡ Updated Risk Calculator</div>
+          <div class="calc-panel">
+            <div class="calc-row"><span class="calc-label">Price gap to stop</span><span class="calc-value" id="ec-gap">—</span></div>
+            <div class="calc-row"><span class="calc-label">Loss per contract</span><span class="calc-value" id="ec-losspc">—</span></div>
+            <div class="calc-divider"></div>
+            <div class="calc-row"><span class="calc-label">Max risk $ (config)</span><span class="calc-value" id="ec-maxrisk">—</span></div>
+            <div class="calc-row"><span class="calc-label">Risk check</span><span class="calc-value" id="ec-riskcheck">—</span></div>
+            <div class="calc-divider"></div>
+            <div class="calc-row"><span class="calc-label">Max position $</span><span class="calc-value" id="ec-maxpos">—</span></div>
+            <div class="calc-row"><span class="calc-label">Contracts by position</span><span class="calc-value" id="ec-bypos">—</span></div>
+            <div class="calc-row"><span class="calc-label">Contracts by risk</span><span class="calc-value" id="ec-byrisk">—</span></div>
+            <div class="calc-highlight">
+              <span class="calc-label">✅ Recommended</span>
+              <span class="calc-value green" id="ec-recommended">—</span>
+            </div>
+            <div class="calc-divider"></div>
+            <div class="calc-row"><span class="calc-label">Capital to deploy</span><span class="calc-value" id="ec-capital">—</span></div>
+            <div class="calc-row"><span class="calc-label">Expected max loss</span><span class="calc-value red" id="ec-maxloss">—</span></div>
+            <div class="calc-row"><span class="calc-label">Expected profit</span><span class="calc-value green" id="ec-profit">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER BUTTONS -->
+    <div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <button class="btn btn-primary" onclick="updateTrade()">💾 Update Trade</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-trade')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="firebase-status" id="firebaseStatus">
   <div class="spinner" style="width:12px;height:12px;"></div> Connecting...
 </div>
@@ -1151,7 +1307,7 @@ function renderOpenTrades() {
     `${open.length} open position${open.length!==1?'s':''} — ${lbl} account`;
   const tbody = document.getElementById('openTradesBody');
   if (!open.length) {
-    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state">
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state">
       <div class="empty-icon">${currentMode==='paper'?'📋':'📊'}</div>
       <div class="empty-title">No open ${lbl} trades</div>
       <div class="empty-sub">Go to Watchlist → Enter Trade, or use the + New Trade tab</div>
@@ -1159,6 +1315,12 @@ function renderOpenTrades() {
   }
   tbody.innerHTML = open.map(t => {
     const cap = (t.contracts * t.optionPrice * 100).toFixed(2);
+    const gap = (t.stockPrice && t.stopLoss) ? Math.abs(t.stockPrice - t.stopLoss) : 0;
+    const lossPerContract = gap && t.delta ? gap * t.delta * 100 : 0;
+    const maxLoss = lossPerContract ? (lossPerContract * t.contracts) : 0;
+    const maxLossHtml = maxLoss
+      ? `<span class="text-mono text-red fw-7">$${maxLoss.toFixed(2)}</span>`
+      : '<span style="color:var(--text3);">—</span>';
     const conv = t.conviction
       ? `<span class="badge ${t.conviction==='High'?'badge-green':t.conviction==='Low'?'badge-red':'badge-yellow'}">${t.conviction}</span>`
       : '—';
@@ -1171,12 +1333,14 @@ function renderOpenTrades() {
       <td class="text-mono">$${t.optionPrice}</td>
       <td class="text-mono">${t.contracts}</td>
       <td class="text-mono">$${cap}</td>
+      <td>${maxLossHtml}</td>
       <td class="text-mono text-red">${t.stopLoss?'$'+t.stopLoss:'—'}</td>
       <td class="text-mono text-green">${t.target?'$'+t.target:'—'}</td>
       <td>${conv}</td>
       <td><span class="badge badge-blue">Open</span></td>
       <td>
         <div class="flex gap-2">
+          <button class="btn btn-primary btn-xs" onclick="openEditTrade('${t.id}')">✏️ Edit</button>
           <button class="btn btn-danger btn-xs" onclick="openCloseTrade('${t.id}')">Close</button>
           ${t.notes||t.trigger?`<button class="btn btn-outline btn-xs" onclick="viewNotes('${t.id}')">Notes</button>`:''}
           <button class="btn btn-outline btn-xs" onclick="deleteTrade('${t.id}')">🗑</button>
@@ -1468,8 +1632,21 @@ function refreshDashboard() {
   const avgWin   = wins.length   ? wins.reduce((s,t)   => s+t.pnl, 0) / wins.length   : 0;
   const avgLoss  = losses.length ? Math.abs(losses.reduce((s,t) => s+t.pnl, 0) / losses.length) : 0;
 
+  // Capital at Risk = sum of (gap to stop × delta × 100 × contracts) for each open trade
+  const capitalAtRisk = open.reduce((sum, t) => {
+    if (!t.stockPrice || !t.stopLoss || !t.delta) return sum;
+    const gap = Math.abs(t.stockPrice - t.stopLoss);
+    const lossPerContract = gap * t.delta * 100;
+    return sum + (lossPerContract * t.contracts);
+  }, 0);
+  const maxRiskBudget = (riskConfig.maxRiskPct||0) / 100 * (riskConfig.funding||0) * (open.length||1);
+  const riskPct = maxRiskBudget > 0 ? capitalAtRisk / maxRiskBudget * 100 : 0;
+
   document.getElementById('m-open').textContent    = open.length;
   document.getElementById('m-capital').textContent = `$${capital.toFixed(2)}`;
+  const riskEl = document.getElementById('m-atrisk');
+  riskEl.textContent = capitalAtRisk > 0 ? `$${capitalAtRisk.toFixed(2)}` : '$0.00';
+  riskEl.className = `metric-value text-mono ${riskPct > 80 ? 'red' : riskPct > 50 ? 'yellow' : 'green'}`;
   document.getElementById('m-unrealized').textContent = '—';
   const rEl = document.getElementById('m-realized');
   rEl.textContent = `${realized>=0?'+':''}$${realized.toFixed(2)}`;
@@ -1560,6 +1737,126 @@ function renderMonthlyBreakdown() {
     '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px;">No closed trades yet</td></tr>';
 }
 
+
+// ══════════════════════════════════════════
+// EDIT TRADE — Open modal pre-populated
+// ══════════════════════════════════════════
+function openEditTrade(tradeId) {
+  const t = trades.find(x => x.id === tradeId);
+  if (!t) return;
+
+  document.getElementById('et-trade-id').value          = tradeId;
+  document.getElementById('et-title').textContent       = `✏️ Edit Trade — ${t.ticker} ${t.direction}`;
+  document.getElementById('et-ticker').value            = t.ticker;
+  document.getElementById('et-direction-display').value = t.direction;
+  document.getElementById('et-stockprice').value        = t.stockPrice   || '';
+  document.getElementById('et-conviction').value        = t.conviction   || '';
+  document.getElementById('et-analysisdate').value      = t.analysisDate || '';
+  document.getElementById('et-entrydate').value         = t.entryDate    || '';
+  document.getElementById('et-trigger').value           = t.trigger      || '';
+  document.getElementById('et-strike').value            = t.strike       || '';
+  document.getElementById('et-expiry').value            = t.expiry       || '';
+  document.getElementById('et-optionprice').value       = t.optionPrice  || '';
+  document.getElementById('et-delta').value             = t.delta        || '';
+  document.getElementById('et-theta').value             = t.theta        || '';
+  document.getElementById('et-iv').value                = t.iv           || '';
+  document.getElementById('et-stoploss').value          = t.stopLoss     || '';
+  document.getElementById('et-target').value            = t.target       || '';
+  document.getElementById('et-contracts').value         = t.contracts    || '';
+  document.getElementById('et-notes').value             = t.notes        || '';
+
+  // Responsive layout inside modal
+  const layout = document.getElementById('editTradeLayout');
+  if (layout) layout.style.gridTemplateColumns = window.innerWidth < 750 ? '1fr' : '1fr 300px';
+
+  editRecalc();
+  openModal('modal-edit-trade');
+}
+
+function editRecalc() {
+  const sp = parseFloat(document.getElementById('et-stockprice').value);
+  const sl = parseFloat(document.getElementById('et-stoploss').value);
+  const tp = parseFloat(document.getElementById('et-target').value);
+  const op = parseFloat(document.getElementById('et-optionprice').value);
+  const d  = parseFloat(document.getElementById('et-delta').value);
+  const setE = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+
+  if (!sp || !op || !d) {
+    ['ec-gap','ec-losspc','ec-maxrisk','ec-riskcheck','ec-maxpos',
+     'ec-bypos','ec-byrisk','ec-recommended','ec-capital','ec-maxloss','ec-profit']
+      .forEach(id => setE(id, '—'));
+    return;
+  }
+  const funding  = riskConfig.funding    || 0;
+  const maxRisk$ = (riskConfig.maxRiskPct|| 0) / 100 * funding;
+  const maxPos$  = (riskConfig.maxPosPct || 0) / 100 * funding;
+  const gap      = sl ? Math.abs(sp - sl) : 0;
+  const lossPC   = gap * d * 100;
+  const byPos    = maxPos$ > 0 && op > 0 ? Math.floor(maxPos$ / (op * 100)) : 0;
+  const byRisk   = lossPC > 0 && maxRisk$ > 0 ? Math.floor(maxRisk$ / lossPC) : 0;
+  const rec      = byPos > 0 && byRisk > 0 ? Math.min(byPos, byRisk) : (byPos || byRisk);
+  const capital  = rec * op * 100;
+  const maxLoss  = rec * lossPC;
+  const tMove    = tp && sp ? Math.abs(tp - sp) : 0;
+  const profit   = tMove * d * 100 * rec;
+
+  setE('ec-gap',         gap    ? `$${gap.toFixed(2)}`    : '—');
+  setE('ec-losspc',      lossPC ? `$${lossPC.toFixed(2)}` : '—');
+  setE('ec-maxrisk',     maxRisk$ ? `$${maxRisk$.toFixed(2)}` : 'Not configured');
+  setE('ec-maxpos',      maxPos$  ? `$${maxPos$.toFixed(2)}`  : 'Not configured');
+  if (lossPC && maxRisk$) {
+    document.getElementById('ec-riskcheck').innerHTML = lossPC <= maxRisk$
+      ? '<span class="badge badge-green">🟢 SAFE</span>'
+      : '<span class="badge badge-red">🔴 OVER LIMIT</span>';
+  } else setE('ec-riskcheck', '—');
+  setE('ec-bypos',       byPos  || '—');
+  setE('ec-byrisk',      byRisk || '—');
+  setE('ec-recommended', rec    || '—');
+  setE('ec-capital',  capital ? `$${capital.toFixed(2)}`  : '—');
+  setE('ec-maxloss',  maxLoss ? `$${maxLoss.toFixed(2)}`  : '—');
+  setE('ec-profit',   profit  ? `$${profit.toFixed(2)}`   : '—');
+}
+
+async function updateTrade() {
+  const tradeId   = document.getElementById('et-trade-id').value;
+  const sp        = parseFloat(document.getElementById('et-stockprice').value);
+  const op        = parseFloat(document.getElementById('et-optionprice').value);
+  const contracts = parseInt(document.getElementById('et-contracts').value);
+  const delta     = parseFloat(document.getElementById('et-delta').value);
+
+  if (!sp || !op || !contracts || !delta) {
+    toast('Stock price, option price, contracts and delta are required', 'error'); return;
+  }
+  const btn = event.currentTarget;
+  btn.textContent = 'Saving...'; btn.disabled = true;
+  try {
+    await fbUpdate(col('trades'), tradeId, {
+      stockPrice:      sp,
+      optionPrice:     op,
+      contracts:       contracts,
+      delta:           delta,
+      strike:          parseFloat(document.getElementById('et-strike').value)    || null,
+      expiry:          document.getElementById('et-expiry').value,
+      theta:           parseFloat(document.getElementById('et-theta').value)     || null,
+      iv:              parseFloat(document.getElementById('et-iv').value)        || null,
+      stopLoss:        parseFloat(document.getElementById('et-stoploss').value)  || null,
+      target:          parseFloat(document.getElementById('et-target').value)    || null,
+      trigger:         document.getElementById('et-trigger').value,
+      conviction:      document.getElementById('et-conviction').value,
+      analysisDate:    document.getElementById('et-analysisdate').value,
+      entryDate:       document.getElementById('et-entrydate').value,
+      notes:           document.getElementById('et-notes').value,
+      capitalDeployed: contracts * op * 100,
+    });
+    await loadTrades();
+    closeModal('modal-edit-trade');
+    renderOpenTrades();
+    refreshDashboard();
+    toast(`Trade updated successfully ✅`);
+  } catch(e) { toast('Error updating trade: ' + e.message, 'error'); }
+  finally { btn.textContent = '💾 Update Trade'; btn.disabled = false; }
+}
+
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
@@ -1571,6 +1868,8 @@ function checkLayout() {
   if (l) l.style.gridTemplateColumns = window.innerWidth < 900 ? '1fr' : '1fr 340px';
   const rc = document.getElementById('riskConfigLayout');
   if (rc) rc.style.gridTemplateColumns = window.innerWidth < 700 ? '1fr' : '1fr 1fr';
+  const el = document.getElementById('editTradeLayout');
+  if (el) el.style.gridTemplateColumns = window.innerWidth < 750 ? '1fr' : '1fr 300px';
 }
 window.addEventListener('resize', checkLayout);
 checkLayout();
