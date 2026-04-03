@@ -326,8 +326,7 @@ select.form-control option{background:var(--card);}
     <div class="metrics-grid">
       <div class="metric-card">        <div class="metric-label">Open Trades</div>    <div class="metric-value" id="m-open">—</div></div>
       <div class="metric-card green">  <div class="metric-label">Capital Deployed</div><div class="metric-value text-mono" id="m-capital">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;">Filled orders only</div></div>
-      <div class="metric-card red">    <div class="metric-label">Capital at Risk</div><div class="metric-value text-mono" id="m-atrisk">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;" id="m-atrisk-sub">Filled orders only</div></div>
-      <div class="metric-card">        <div class="metric-label">Unrealized P&amp;L</div> <div class="metric-value text-mono" id="m-unrealized">—</div></div>
+      <div class="metric-card red">    <div class="metric-label">Capital at Risk</div><div class="metric-value text-mono" id="m-atrisk">—</div><div style="font-size:11px;color:var(--red);font-weight:600;margin-top:2px;" id="m-atrisk-pct"></div><div style="font-size:11px;color:var(--text2);margin-top:2px;" id="m-atrisk-sub">Filled orders only</div></div>
       <div class="metric-card green">  <div class="metric-label">Realized P&amp;L</div>   <div class="metric-value text-mono" id="m-realized">—</div></div>
       <div class="metric-card">        <div class="metric-label">Win Rate</div>        <div class="metric-value" id="m-winrate">—</div></div>
       <div class="metric-card">        <div class="metric-label">Account Balance</div><div class="metric-value text-mono" id="m-balance">—</div></div>
@@ -366,8 +365,8 @@ select.form-control option{background:var(--card);}
       <div class="table-wrap"><table>
         <thead><tr>
           <th>Ticker</th><th>Dir</th><th>Entry Date</th><th>Expiry</th>
-          <th>Strike</th><th>Entry $</th><th>Contracts</th><th>Capital</th>
-          <th>Max Loss</th><th>Stop</th><th>Target</th><th>Conviction</th><th>Status</th><th>Actions</th>
+          <th>Entry $</th><th>Contracts</th><th>Capital</th>
+          <th>Max Loss</th><th>Stock Price</th><th>Stop</th><th>Target</th><th>Conviction</th><th>Status</th><th>Actions</th>
         </tr></thead>
         <tbody id="openTradesBody">
           <tr><td colspan="13" class="loading"><div class="spinner"></div> Loading...</td></tr>
@@ -582,8 +581,16 @@ select.form-control option{background:var(--card);}
               <span class="calc-value red" id="c-maxloss">—</span>
             </div>
             <div class="calc-row">
+              <span class="calc-label">Loss % of capital</span>
+              <span class="calc-value red" id="c-losspct">—</span>
+            </div>
+            <div class="calc-row">
               <span class="calc-label">Expected profit at target</span>
               <span class="calc-value green" id="c-profit">—</span>
+            </div>
+            <div class="calc-row">
+              <span class="calc-label">Profit % of capital</span>
+              <span class="calc-value green" id="c-profitpct">—</span>
             </div>
           </div>
           <div class="mt-3" style="font-size:11px;color:var(--text3);line-height:1.5;">
@@ -1251,13 +1258,15 @@ function recalc() {
   set('c-recommended',  rec    || '—');
   set('c-capital',  capital ? `$${capital.toFixed(2)}`  : '—');
   set('c-maxloss',  maxLoss ? `$${maxLoss.toFixed(2)}`  : '—');
+  set('c-losspct',  (maxLoss && capital) ? `${(maxLoss/capital*100).toFixed(1)}%` : '—');
   set('c-profit',   profit  ? `$${profit.toFixed(2)}`   : '—');
+  set('c-profitpct',(profit && capital)  ? `${(profit/capital*100).toFixed(1)}%`  : '—');
   if (rec > 0) document.getElementById('nt-contracts').value = rec;
 }
 
 function clearCalc() {
   ['c-gap','c-losspercontract','c-maxrisk','c-riskcheck','c-maxpos',
-   'c-bypos','c-byrisk','c-recommended','c-capital','c-maxloss','c-profit']
+   'c-bypos','c-byrisk','c-recommended','c-capital','c-maxloss','c-losspct','c-profit','c-profitpct']
     .forEach(id => { const el = document.getElementById(id); if(el) el.textContent = '—'; });
 }
 
@@ -1354,11 +1363,11 @@ function renderOpenTrades() {
       <td><span class="badge ${t.direction==='CALL'?'badge-green':'badge-red'}">${t.direction}</span></td>
       <td>${t.entryDate||'—'}</td>
       <td>${t.expiry||'—'}</td>
-      <td class="text-mono">$${t.strike}</td>
       <td class="text-mono">$${t.optionPrice}</td>
       <td class="text-mono">${t.contracts}</td>
       <td class="text-mono">$${cap}</td>
       <td>${maxLossHtml}</td>
+      <td class="text-mono">${t.stockPrice?'$'+t.stockPrice:'—'}</td>
       <td class="text-mono text-red">${t.stopLoss?'$'+t.stopLoss:'—'}</td>
       <td class="text-mono text-green">${t.target?'$'+t.target:'—'}</td>
       <td>${conv}</td>
@@ -1683,10 +1692,13 @@ function refreshDashboard() {
   const riskEl = document.getElementById('m-atrisk');
   riskEl.textContent = capitalAtRisk > 0 ? `$${capitalAtRisk.toFixed(2)}` : '$0.00';
   riskEl.className = `metric-value text-mono ${riskPct > 80 ? 'red' : riskPct > 50 ? 'yellow' : 'green'}`;
+  // Risk % of Capital Deployed
+  const riskPctOfDeployed = capitalFilled > 0 ? (capitalAtRisk / capitalFilled * 100) : 0;
+  const pctEl = document.getElementById('m-atrisk-pct');
+  if (pctEl) pctEl.textContent = capitalFilled > 0 ? `${riskPctOfDeployed.toFixed(1)}% of deployed capital` : '';
   // Sub-label: X filled · X pending
   const subEl = document.getElementById('m-atrisk-sub');
   if (subEl) subEl.textContent = `${filledOpen.length} filled · ${pendingOpen.length} pending`;
-  document.getElementById('m-unrealized').textContent = '—';
   const rEl = document.getElementById('m-realized');
   rEl.textContent = `${realized>=0?'+':''}$${realized.toFixed(2)}`;
   rEl.className   = `metric-value text-mono ${realized>=0?'green':'red'}`;
