@@ -32,6 +32,26 @@
   window.dispatchEvent(new Event('firebaseReady'));
 </script>
 
+<!-- ☁️ CLOUDINARY CONFIG -->
+<script>
+  const CLOUDINARY_CLOUD  = 'dmdohqs1c';
+  const CLOUDINARY_PRESET = 'trading_journal';
+
+  // Upload a single File to Cloudinary, returns { url, name, notes }
+  async function uploadToCloudinary(file, folder) {
+    const fd = new FormData();
+    fd.append('file',            file);
+    fd.append('upload_preset',   CLOUDINARY_PRESET);
+    fd.append('folder',          `trading-journal/${folder}`);
+    const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+      method: 'POST', body: fd
+    });
+    if (!res.ok) throw new Error('Cloudinary upload failed');
+    const data = await res.json();
+    return { url: data.secure_url, name: file.name, notes: '' };
+  }
+</script>
+
 <style>
 /* ── THEME VARIABLES ── */
 :root {
@@ -258,6 +278,43 @@ select.form-control option{background:var(--card);}
 .confirm-sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
 .confirm-btns{display:flex;gap:10px;justify-content:center;}
 
+/* ── IMAGE UPLOAD ZONES ── */
+.img-upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:20px;
+  text-align:center;cursor:pointer;transition:all .2s;color:var(--text2);font-size:13px;
+  position:relative;}
+.img-upload-zone:hover,.img-upload-zone.dragover{border-color:var(--accent);color:var(--accent);background:rgba(59,126,255,.05);}
+.img-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+
+.img-item{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;margin-top:10px;}
+.img-item-header{display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-bottom:1px solid var(--border);}
+.img-item-name{font-size:12px;color:var(--text2);font-weight:500;flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.img-item-remove{background:none;border:none;color:var(--red);font-size:16px;
+  padding:0 4px;flex-shrink:0;line-height:1;}
+.img-item-preview{width:100%;max-height:160px;object-fit:cover;display:block;cursor:pointer;}
+.img-item-preview:hover{opacity:.85;}
+.img-item-notes{padding:8px 12px;}
+.img-item-notes textarea{width:100%;background:var(--bg2);border:1px solid var(--border);
+  color:var(--text);border-radius:6px;padding:8px;font-size:12px;resize:vertical;
+  min-height:52px;font-family:var(--font);}
+.img-item-notes textarea:focus{outline:none;border-color:var(--accent);}
+.img-item-notes textarea::placeholder{color:var(--text3);}
+
+.img-uploading{display:flex;align-items:center;gap:8px;padding:10px 12px;
+  font-size:12px;color:var(--text2);}
+
+/* ── REVIEW MODAL IMAGES ── */
+.review-img-wrap{margin-bottom:14px;}
+.review-img{width:100%;border-radius:7px;cursor:pointer;border:1px solid var(--border);
+  display:block;transition:opacity .2s;}
+.review-img:hover{opacity:.88;}
+.review-img-notes{margin-top:6px;font-size:12px;line-height:1.5;color:var(--text);
+  background:var(--bg2);border-left:3px solid var(--accent);padding:8px 10px;
+  border-radius:0 6px 6px 0;}
+.review-img-notes.exit-notes{border-left-color:var(--green);}
+
 /* ── CLOSE TRADE PNL PREVIEW ── */
 .pnl-preview-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:14px;}
 
@@ -456,6 +513,19 @@ select.form-control option{background:var(--card);}
               <label class="form-label">Trigger Condition</label>
               <textarea class="form-control" id="nt-trigger" rows="2" placeholder="Describe your entry trigger / setup reason..."></textarea>
             </div>
+          </div>
+          <!-- CHART UPLOAD -->
+          <div class="mt-3">
+            <label class="form-label">Chart Screenshots (max 3) — PNG preferred</label>
+            <div class="img-upload-zone" id="nt-dropzone"
+              ondragover="handleDragOver(event,'nt-dropzone')"
+              ondragleave="handleDragLeave('nt-dropzone')"
+              ondrop="handleDrop(event,'nt-imgs','nt-imgs-list')">
+              📊 Drag &amp; drop charts here or click to browse
+              <input type="file" multiple accept="image/png,image/jpeg,image/jpg"
+                onchange="handleImgSelect(event,'nt-imgs','nt-imgs-list')">
+            </div>
+            <div id="nt-imgs-list"></div>
           </div>
         </div>
 
@@ -788,6 +858,18 @@ select.form-control option{background:var(--card);}
       </div>
     </div>
 
+    <div class="mt-3">
+      <label class="form-label">Exit Chart Screenshots (max 3)</label>
+      <div class="img-upload-zone" id="ct-dropzone"
+        ondragover="handleDragOver(event,'ct-dropzone')"
+        ondragleave="handleDragLeave('ct-dropzone')"
+        ondrop="handleDrop(event,'ct-imgs','ct-imgs-list')">
+        📊 Drag &amp; drop exit charts here or click to browse
+        <input type="file" multiple accept="image/png,image/jpeg,image/jpg"
+          onchange="handleImgSelect(event,'ct-imgs','ct-imgs-list')">
+      </div>
+      <div id="ct-imgs-list"></div>
+    </div>
     <div class="form-group mt-3">
       <label class="form-label">Notes / Lessons Learned</label>
       <textarea class="form-control" id="ct-notes" rows="3" placeholder="What happened? What did you learn?"></textarea>
@@ -878,6 +960,20 @@ select.form-control option{background:var(--card);}
               <label class="form-label">Trigger Condition</label>
               <textarea class="form-control" id="et-trigger" rows="2" placeholder="Describe your entry trigger..."></textarea>
             </div>
+          </div>
+          <!-- CHART UPLOAD -->
+          <div class="mt-3">
+            <label class="form-label">Chart Screenshots (max 3) — add or replace</label>
+            <div class="img-upload-zone" id="et-dropzone"
+              ondragover="handleDragOver(event,'et-dropzone')"
+              ondragleave="handleDragLeave('et-dropzone')"
+              ondrop="handleDrop(event,'et-imgs','et-imgs-list')">
+              📊 Drag &amp; drop charts here or click to browse
+              <input type="file" multiple accept="image/png,image/jpeg,image/jpg"
+                onchange="handleImgSelect(event,'et-imgs','et-imgs-list')">
+            </div>
+            <div id="et-imgs-list"></div>
+            <div id="et-existing-imgs" class="mt-2"></div>
           </div>
         </div>
 
@@ -991,6 +1087,30 @@ select.form-control option{background:var(--card);}
     <div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
       <button class="btn btn-primary" onclick="updateTrade()">💾 Update Trade</button>
       <button class="btn btn-outline" onclick="closeModal('modal-edit-trade')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════ REVIEW TRADE IMAGES MODAL ════════ -->
+<div class="modal-overlay" id="modal-view-files">
+  <div class="modal" style="max-width:860px;width:95vw;">
+    <div class="modal-header">
+      <div class="modal-title">📁 Trade Review — <span id="vf-ticker-label"></span></div>
+      <button class="modal-close" onclick="closeModal('modal-view-files')">✕</button>
+    </div>
+    <div id="vf-content"></div>
+  </div>
+</div>
+
+<!-- ════════ LIGHTBOX ════════ -->
+<div class="modal-overlay" id="modal-lightbox" onclick="closeModal('modal-lightbox')"
+  style="background:rgba(0,0,0,.92);">
+  <div style="max-width:92vw;max-height:92vh;text-align:center;">
+    <img id="lightbox-img" src=""
+      style="max-width:92vw;max-height:86vh;border-radius:8px;object-fit:contain;display:block;margin:auto;">
+    <div style="color:rgba(255,255,255,.5);font-size:12px;margin-top:8px;">
+      Click anywhere to close
     </div>
   </div>
 </div>
@@ -1295,11 +1415,14 @@ async function submitTrade() {
     toast('Please fill all required (*) fields', 'error'); return;
   }
   const btn = event.currentTarget;
-  btn.textContent = 'Saving...'; btn.disabled = true;
+  btn.textContent = 'Uploading & Saving...'; btn.disabled = true;
   try {
+    const folder = `${currentMode}/entry`;
+    const entryCharts = await uploadImgState('nt-imgs', folder);
     await fbAdd(col('trades'), {
       ticker, direction,
       stockPrice: sp, optionPrice: op, contracts, strike, expiry, delta,
+      entryCharts,
       theta:         parseFloat(document.getElementById('nt-theta').value)    || null,
       iv:            parseFloat(document.getElementById('nt-iv').value)       || null,
       stopLoss:      parseFloat(document.getElementById('nt-stoploss').value) || null,
@@ -1328,6 +1451,7 @@ function resetTradeForm() {
    'nt-trigger','nt-conviction','nt-analysisdate','nt-notes']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   const osEl = document.getElementById('nt-orderstatus'); if(osEl) osEl.value='pending';
+  resetImgState('nt-imgs','nt-imgs-list');
   clearCalc();
 }
 
@@ -1434,6 +1558,7 @@ function renderClosedTrades() {
         <td style="max-width:160px;font-size:12px;color:var(--text2);">${t.closeNotes?t.closeNotes.substring(0,60)+(t.closeNotes.length>60?'…':''):'—'}</td>
         <td>
           <div class="flex gap-2">
+            <button class="btn btn-outline btn-xs" onclick="viewTradeImages('${t.id}')">📁 Review</button>
             ${t.notes||t.trigger||t.closeNotes?`<button class="btn btn-outline btn-xs" onclick="viewNotes('${t.id}')">Notes</button>`:''}
             <button class="btn btn-outline btn-xs" onclick="deleteTrade('${t.id}')">🗑</button>
           </div>
@@ -1477,6 +1602,7 @@ function openCloseTrade(tradeId) {
   document.getElementById('ct-exitprice').value       = '';
   document.getElementById('ct-notes').value           = '';
   document.getElementById('ct-pnl-preview').style.display = 'none';
+  resetImgState('ct-imgs','ct-imgs-list');
   openModal('modal-close-trade');
 }
 
@@ -1507,13 +1633,16 @@ async function confirmCloseTrade() {
   const ep      = parseFloat(document.getElementById('ct-exitprice').value);
   const ct      = parseInt(document.getElementById('ct-contracts').value);
   if (!ep || !ct) { toast('Enter exit price and contracts', 'error'); return; }
-  const btn = event.currentTarget; btn.textContent = 'Closing...'; btn.disabled = true;
+  const btn = event.currentTarget; btn.textContent = 'Uploading & Closing...'; btn.disabled = true;
   try {
+    const folder = `${currentMode}/exit`;
+    const exitCharts = await uploadImgState('ct-imgs', folder);
     const pnl  = (ep - closingTrade.optionPrice) * ct * 100;
     const maxL = closingTrade.stopLoss
       ? Math.abs(closingTrade.stockPrice - closingTrade.stopLoss) * closingTrade.delta * 100 * ct : 0;
     await fbUpdate(col('trades'), tradeId, {
       status:           'closed',
+      exitCharts,
       exitDate:         document.getElementById('ct-exitdate').value,
       exitPrice:        ep,
       contractsClosed:  ct,
@@ -1841,6 +1970,10 @@ function openEditTrade(tradeId) {
   const layout = document.getElementById('editTradeLayout');
   if (layout) layout.style.gridTemplateColumns = window.innerWidth < 750 ? '1fr' : '1fr 300px';
 
+  // Load existing entry charts into edit state
+  editExistingImgs = JSON.parse(JSON.stringify(t.entryCharts || []));
+  resetImgState('et-imgs','et-imgs-list');
+  renderExistingImgs(editExistingImgs, 'et-existing-imgs', 'et-imgs');
   editRecalc();
   openModal('modal-edit-trade');
 }
@@ -1903,7 +2036,12 @@ async function updateTrade() {
   btn.textContent = 'Saving...'; btn.disabled = true;
   try {
     const newOrderStatus = document.getElementById('et-orderstatus').value || 'pending';
+    // Upload any new images then merge with kept existing ones
+    const folder = `${currentMode}/entry`;
+    const newlyUploaded = await uploadImgState('et-imgs', folder);
+    const mergedCharts  = [...editExistingImgs, ...newlyUploaded];
     await fbUpdate(col('trades'), tradeId, {
+      entryCharts: mergedCharts,
       stockPrice:      sp,
       optionPrice:     op,
       contracts:       contracts,
@@ -1929,6 +2067,194 @@ async function updateTrade() {
     toast(`Trade updated successfully ✅`);
   } catch(e) { toast('Error updating trade: ' + e.message, 'error'); }
   finally { btn.textContent = '💾 Update Trade'; btn.disabled = false; }
+}
+
+
+// ══════════════════════════════════════════
+// IMAGE UPLOAD — Cloudinary
+// ══════════════════════════════════════════
+
+// State: key → array of { file, previewUrl, notes } (pending upload)
+const imgState = { 'nt-imgs':[], 'et-imgs':[], 'ct-imgs':[] };
+
+// Drag & drop handlers
+function handleDragOver(e, zoneId) {
+  e.preventDefault();
+  document.getElementById(zoneId).classList.add('dragover');
+}
+function handleDragLeave(zoneId) {
+  document.getElementById(zoneId).classList.remove('dragover');
+}
+function handleDrop(e, stateKey, listId) {
+  e.preventDefault();
+  const zoneId = stateKey.replace('-imgs', '-dropzone');
+  document.getElementById(zoneId).classList.remove('dragover');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  addImagesToState(files, stateKey, listId);
+}
+function handleImgSelect(e, stateKey, listId) {
+  const files = Array.from(e.target.files);
+  addImagesToState(files, stateKey, listId);
+  e.target.value = '';
+}
+
+function addImagesToState(files, stateKey, listId) {
+  const existing = imgState[stateKey] || [];
+  const remaining = 3 - existing.length;
+  if (remaining <= 0) { toast('Maximum 3 images per trade', 'error'); return; }
+  const toAdd = files.slice(0, remaining);
+  toAdd.forEach(file => {
+    const previewUrl = URL.createObjectURL(file);
+    imgState[stateKey].push({ file, previewUrl, notes: '' });
+  });
+  renderImgItems(stateKey, listId);
+}
+
+function renderImgItems(stateKey, listId) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const items = imgState[stateKey] || [];
+  if (!items.length) { list.innerHTML = ''; return; }
+  list.innerHTML = items.map((item, i) => `
+    <div class="img-item" id="${stateKey}-item-${i}">
+      <div class="img-item-header">
+        <span class="img-item-name">📷 ${item.name || item.file?.name || 'image'}</span>
+        <button class="img-item-remove" onclick="removeImgItem('${stateKey}','${listId}',${i})">✕</button>
+      </div>
+      <img class="img-item-preview" src="${item.previewUrl || item.url}"
+        onclick="openLightbox('${item.previewUrl || item.url}')" alt="chart preview">
+      <div class="img-item-notes">
+        <textarea placeholder="Quick analysis notes for this chart... (optional)"
+          onchange="updateImgNotes('${stateKey}',${i},this.value)"
+          oninput="updateImgNotes('${stateKey}',${i},this.value)"
+        >${item.notes || ''}</textarea>
+      </div>
+    </div>`).join('');
+}
+
+function updateImgNotes(stateKey, index, value) {
+  if (imgState[stateKey] && imgState[stateKey][index] !== undefined) {
+    imgState[stateKey][index].notes = value;
+  }
+}
+
+function removeImgItem(stateKey, listId, index) {
+  if (imgState[stateKey]) {
+    URL.revokeObjectURL(imgState[stateKey][index]?.previewUrl);
+    imgState[stateKey].splice(index, 1);
+  }
+  renderImgItems(stateKey, listId);
+}
+
+// Upload all pending images for a stateKey to Cloudinary
+// Returns array of { url, name, notes }
+async function uploadImgState(stateKey, folder) {
+  const items = imgState[stateKey] || [];
+  if (!items.length) return [];
+  const results = [];
+  for (const item of items) {
+    if (item.url) {
+      // Already uploaded (existing image from edit)
+      results.push({ url: item.url, name: item.name, notes: item.notes || '' });
+    } else if (item.file) {
+      try {
+        const uploaded = await uploadToCloudinary(item.file, folder);
+        uploaded.notes = item.notes || '';
+        results.push(uploaded);
+      } catch(e) {
+        console.error('Upload error:', e);
+        toast('Image upload failed: ' + item.file.name, 'error');
+      }
+    }
+  }
+  // Clear state after upload
+  imgState[stateKey] = [];
+  return results;
+}
+
+function resetImgState(stateKey, listId) {
+  imgState[stateKey] = [];
+  const el = document.getElementById(listId);
+  if (el) el.innerHTML = '';
+}
+
+// Lightbox
+function openLightbox(url) {
+  document.getElementById('lightbox-img').src = url;
+  openModal('modal-lightbox');
+}
+
+// ── Populate existing images in Edit modal ──
+function renderExistingImgs(imgs, containerId, stateKey) {
+  const el = document.getElementById(containerId);
+  if (!el || !imgs || !imgs.length) { if(el) el.innerHTML=''; return; }
+  el.innerHTML = '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600;">Previously uploaded:</div>' +
+    imgs.map((img, i) => `
+      <div class="img-item">
+        <div class="img-item-header">
+          <span class="img-item-name">📷 ${img.name || 'chart'}</span>
+          <button class="img-item-remove" onclick="removeExistingImg('${stateKey}',${i},'${containerId}')">✕</button>
+        </div>
+        <img class="img-item-preview" src="${img.url}" onclick="openLightbox('${img.url}')" alt="chart">
+        <div class="img-item-notes">
+          <textarea placeholder="Analysis notes..."
+            onchange="updateExistingImgNotes('${stateKey}',${i},this.value)"
+          >${img.notes || ''}</textarea>
+        </div>
+      </div>`).join('');
+}
+
+// For edit modal — track existing images separately so we can keep/remove/update notes
+let editExistingImgs = [];
+function updateExistingImgNotes(stateKey, index, value) {
+  if (editExistingImgs[index] !== undefined) editExistingImgs[index].notes = value;
+}
+function removeExistingImg(stateKey, index, containerId) {
+  editExistingImgs.splice(index, 1);
+  renderExistingImgs(editExistingImgs, containerId, stateKey);
+}
+
+// ── REVIEW modal — show entry vs exit images side by side ──
+function viewTradeImages(tradeId) {
+  const t = trades.find(x => x.id === tradeId);
+  if (!t) return;
+  document.getElementById('vf-ticker-label').textContent =
+    `${t.ticker} ${t.direction} — ${t.entryDate||''}`;
+
+  const entryImgs = t.entryCharts || [];
+  const exitImgs  = t.exitCharts  || [];
+  const total = entryImgs.length + exitImgs.length;
+
+  if (!total) {
+    document.getElementById('vf-content').innerHTML = `
+      <div class="empty-state"><div class="empty-icon">📁</div>
+      <div class="empty-title">No charts uploaded</div>
+      <div class="empty-sub">Upload charts when entering or closing a trade</div></div>`;
+    openModal('modal-view-files');
+    return;
+  }
+
+  const renderReviewImgs = (imgs, labelClass, label, date) => {
+    if (!imgs.length) return `<div style="color:var(--text3);font-size:12px;padding:8px;">No charts uploaded</div>`;
+    return imgs.map(img => `
+      <div class="review-img-wrap">
+        <img class="review-img" src="${img.url}" onclick="openLightbox('${img.url}')" alt="${img.name||'chart'}">
+        ${img.notes ? `<div class="review-img-notes ${labelClass}">${img.notes}</div>` : ''}
+      </div>`).join('');
+  };
+
+  document.getElementById('vf-content').innerHTML = `
+    <div class="compare-grid">
+      <div class="compare-side">
+        <div class="compare-label entry">📊 Entry Charts — ${t.entryDate||'—'}</div>
+        ${renderReviewImgs(entryImgs, '', 'entry', t.entryDate)}
+      </div>
+      <div class="compare-side">
+        <div class="compare-label exit">📊 Exit Charts — ${t.exitDate||'—'}</div>
+        ${renderReviewImgs(exitImgs, 'exit-notes', 'exit', t.exitDate)}
+      </div>
+    </div>`;
+  openModal('modal-view-files');
 }
 
 // ══════════════════════════════════════════
