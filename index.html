@@ -467,6 +467,17 @@ select.form-control option{background:var(--card);}
         <div class="section-sub" id="newTradeSub">Logging to: Paper Trading</div>
       </div>
     </div>
+    <!-- PASTE JSON BUTTON -->
+    <div style="margin-bottom:16px;">
+      <button class="btn btn-success" onclick="openModal('modal-paste-json')"
+        style="font-size:14px;padding:10px 20px;">
+        📋 Paste Trade JSON — Auto-fill from Claude
+      </button>
+      <span style="margin-left:12px;font-size:12px;color:var(--text2);">
+        Copy JSON from Trade-Detail-Extract project → paste here → form fills instantly
+      </span>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;" id="tradeEntryLayout">
 
       <!-- LEFT: FORM -->
@@ -1112,6 +1123,82 @@ select.form-control option{background:var(--card);}
     <div style="color:rgba(255,255,255,.5);font-size:12px;margin-top:8px;">
       Click anywhere to close
     </div>
+  </div>
+</div>
+
+
+<!-- ════════ PASTE TRADE JSON MODAL ════════ -->
+<div class="modal-overlay" id="modal-paste-json">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📋 Paste Trade JSON</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px;">
+          Copy JSON from Trade-Detail-Extract → paste below → click Apply
+        </div>
+      </div>
+      <button class="modal-close" onclick="closePasteModal()">✕</button>
+    </div>
+
+    <!-- PASTE AREA -->
+    <div id="pj-paste-area">
+      <div class="form-group">
+        <label class="form-label">Paste JSON here</label>
+        <textarea id="pj-input" class="form-control"
+          rows="12"
+          placeholder='{
+  "ticker": "TGT",
+  "direction": "CALL",
+  "stockPrice": 125.25,
+  "strike": 130,
+  "expiry": "2026-06-18",
+  "optionPrice": 4.325,
+  "delta": 0.41,
+  "theta": -0.08,
+  "iv": 43.17,
+  "stopLoss": 120,
+  "target": 140,
+  "trigger": "Buy when TGT 1-hour candle closes at or above $130",
+  "contracts": 1,
+  "conviction": ""
+}'
+          style="font-family:var(--font-mono);font-size:12px;line-height:1.5;"
+          oninput="clearPasteError()"></textarea>
+      </div>
+      <div id="pj-error" style="display:none;margin-top:8px;padding:10px 14px;
+        background:rgba(255,77,106,.1);border:1px solid var(--red);border-radius:7px;
+        font-size:13px;color:var(--red);"></div>
+      <div class="mt-3 flex gap-2">
+        <button class="btn btn-primary" onclick="parsePasteJSON()">🔍 Parse & Preview</button>
+        <button class="btn btn-outline" onclick="closePasteModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW AREA (hidden until parse succeeds) -->
+    <div id="pj-preview-area" style="display:none;">
+      <div style="background:var(--bg2);border:1px solid var(--border);
+        border-radius:var(--radius);padding:16px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;
+          letter-spacing:1px;color:var(--green);margin-bottom:12px;">
+          ✅ Trade Parsed Successfully
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="pj-preview-grid">
+        </div>
+      </div>
+      <div style="background:rgba(59,126,255,.08);border:1px solid rgba(59,126,255,.3);
+        border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;">
+        💡 Review the details above. Conviction level and contracts can be adjusted after applying.
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-success" onclick="applyPasteJSON()"
+          style="font-size:14px;padding:10px 20px;">
+          ✅ Apply to Form
+        </button>
+        <button class="btn btn-outline" onclick="backToPaste()">← Edit JSON</button>
+        <button class="btn btn-outline" onclick="closePasteModal()">Cancel</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -2069,6 +2156,165 @@ async function updateTrade() {
   finally { btn.textContent = '💾 Update Trade'; btn.disabled = false; }
 }
 
+
+
+// ══════════════════════════════════════════
+// PASTE TRADE JSON — Auto-fill form
+// ══════════════════════════════════════════
+let parsedTradeData = null;
+
+function closePasteModal() {
+  closeModal('modal-paste-json');
+  // Reset to paste area next time
+  document.getElementById('pj-paste-area').style.display    = 'block';
+  document.getElementById('pj-preview-area').style.display  = 'none';
+  clearPasteError();
+}
+
+function clearPasteError() {
+  const el = document.getElementById('pj-error');
+  if (el) { el.style.display = 'none'; el.textContent = ''; }
+}
+
+function showPasteError(msg) {
+  const el = document.getElementById('pj-error');
+  if (el) { el.textContent = '⚠️ ' + msg; el.style.display = 'block'; }
+}
+
+function backToPaste() {
+  document.getElementById('pj-paste-area').style.display   = 'block';
+  document.getElementById('pj-preview-area').style.display = 'none';
+  parsedTradeData = null;
+}
+
+function parsePasteJSON() {
+  const raw = document.getElementById('pj-input').value.trim();
+  if (!raw) { showPasteError('Please paste your JSON first.'); return; }
+
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch(e) {
+    showPasteError('Invalid JSON format. Please copy the complete JSON block from Claude including the { } braces. Error: ' + e.message);
+    return;
+  }
+
+  // Validate required fields
+  const required = ['ticker','direction'];
+  const missing  = required.filter(k => !data[k]);
+  if (missing.length) {
+    showPasteError('Missing required fields: ' + missing.join(', ') + '. Please check your JSON.');
+    return;
+  }
+
+  // Validate direction
+  const dir = (data.direction||'').toUpperCase();
+  if (dir !== 'CALL' && dir !== 'PUT') {
+    showPasteError('Direction must be CALL or PUT. Found: ' + data.direction);
+    return;
+  }
+
+  parsedTradeData = data;
+  renderPastePreview(data);
+  document.getElementById('pj-paste-area').style.display   = 'none';
+  document.getElementById('pj-preview-area').style.display = 'block';
+}
+
+function renderPastePreview(d) {
+  const grid = document.getElementById('pj-preview-grid');
+  if (!grid) return;
+
+  const row = (label, value, cls='') => {
+    if (value === null || value === undefined || value === '') return '';
+    return `<div style="display:flex;flex-direction:column;gap:2px;">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;
+        color:var(--text2);font-weight:600;">${label}</span>
+      <span class="text-mono ${cls}" style="font-size:13px;font-weight:700;">${value}</span>
+    </div>`;
+  };
+
+  const dirColor = d.direction === 'CALL' ? 'text-green' : 'text-red';
+  const expiryFmt = d.expiry || '—';
+
+  grid.innerHTML = [
+    row('Ticker',        d.ticker,                    'text-green'),
+    row('Direction',     d.direction,                  dirColor),
+    row('Stock Price',   d.stockPrice  ? '$'+d.stockPrice  : null),
+    row('Strike',        d.strike      ? '$'+d.strike      : null),
+    row('Expiry',        expiryFmt),
+    row('Option Price',  d.optionPrice ? '$'+d.optionPrice : null),
+    row('Delta',         d.delta       || null),
+    row('Theta',         d.theta       || null),
+    row('IV',            d.iv          ? d.iv+'%'          : null),
+    row('Stop Loss',     d.stopLoss    ? '$'+d.stopLoss    : null,  'text-red'),
+    row('Target',        d.target      ? '$'+d.target      : null,  'text-green'),
+    row('Contracts',     d.contracts   || null),
+  ].filter(Boolean).join('');
+
+  // Show trigger separately if present
+  if (d.trigger) {
+    grid.innerHTML += `<div style="grid-column:1/-1;margin-top:8px;padding:8px 10px;
+      background:var(--card);border-radius:6px;border-left:3px solid var(--accent);">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;
+        color:var(--text2);font-weight:600;display:block;margin-bottom:3px;">Trigger</span>
+      <span style="font-size:12px;color:var(--text);">${d.trigger}</span>
+    </div>`;
+  }
+}
+
+function applyPasteJSON() {
+  if (!parsedTradeData) { toast('No trade data to apply', 'error'); return; }
+  const d = parsedTradeData;
+
+  // Map JSON fields to form elements
+  const fieldMap = {
+    'nt-ticker':       (d.ticker      || '').toUpperCase(),
+    'nt-direction':    (d.direction   || '').toUpperCase(),
+    'nt-stockprice':   d.stockPrice   || '',
+    'nt-strike':       d.strike       || '',
+    'nt-expiry':       d.expiry       || '',
+    'nt-optionprice':  d.optionPrice  || '',
+    'nt-delta':        d.delta        || '',
+    'nt-theta':        d.theta        || '',
+    'nt-iv':           d.iv           || '',
+    'nt-stoploss':     d.stopLoss     || '',
+    'nt-target':       d.target       || '',
+    'nt-trigger':      d.trigger      || '',
+    'nt-contracts':    d.contracts    || '',
+    'nt-conviction':   d.conviction   || '',
+  };
+
+  // Apply all fields
+  Object.entries(fieldMap).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el && val !== null && val !== undefined) el.value = val;
+  });
+
+  // Set today's date for entry and analysis
+  const today = new Date().toISOString().split('T')[0];
+  const entryEl    = document.getElementById('nt-entrydate');
+  const analysisEl = document.getElementById('nt-analysisdate');
+  if (entryEl    && !entryEl.value)    entryEl.value    = today;
+  if (analysisEl && !analysisEl.value) analysisEl.value = today;
+
+  // Run risk calculator with new values
+  recalc();
+
+  // Close modal and reset
+  closePasteModal();
+  document.getElementById('pj-input').value = '';
+  parsedTradeData = null;
+
+  // Switch to new trade tab if not already there
+  switchToTab('new-trade');
+
+  // Focus conviction field — only thing left to fill
+  setTimeout(() => {
+    const convEl = document.getElementById('nt-conviction');
+    if (convEl) convEl.focus();
+    toast(`✅ ${(d.ticker||'').toUpperCase()} ${d.direction} trade loaded — set conviction & review`, 'success');
+  }, 150);
+}
 
 // ══════════════════════════════════════════
 // IMAGE UPLOAD — Cloudinary
