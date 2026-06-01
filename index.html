@@ -501,7 +501,7 @@ select.form-control option{background:var(--card);}
             </div>
             <div class="form-group">
               <label class="form-label">Current Stock Price ($) *</label>
-              <input class="form-control" type="number" id="nt-stockprice" placeholder="100.00" step="0.01" oninput="recalc()">
+              <input class="form-control" type="number" id="nt-stockprice" placeholder="100.00" step="0.01">
             </div>
             <div class="form-group">
               <label class="form-label">Conviction Level</label>
@@ -554,11 +554,11 @@ select.form-control option{background:var(--card);}
             </div>
             <div class="form-group">
               <label class="form-label">Option Entry Price ($) *</label>
-              <input class="form-control" type="number" id="nt-optionprice" placeholder="3.00" step="0.01" oninput="recalc()">
+              <input class="form-control" type="number" id="nt-optionprice" placeholder="3.00" step="0.01">
             </div>
             <div class="form-group">
               <label class="form-label">Delta *</label>
-              <input class="form-control" type="number" id="nt-delta" placeholder="0.60" step="0.01" oninput="recalc()">
+              <input class="form-control" type="number" id="nt-delta" placeholder="0.60" step="0.01">
             </div>
             <div class="form-group">
               <label class="form-label">Theta</label>
@@ -575,13 +575,21 @@ select.form-control option{background:var(--card);}
         <div class="card">
           <div class="card-title">Section C — Risk Parameters</div>
           <div class="form-grid form-grid-2">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Entry Stock Price ($) *
+                <span style="font-size:10px;font-weight:400;color:var(--text3);margin-left:6px;">
+                  — actual stock price when your trigger fires (not current price)
+                </span>
+              </label>
+              <input class="form-control" type="number" id="nt-entryprice" placeholder="e.g. 76.00 — price when 1H candle closes above/below trigger level" step="0.01">
+            </div>
             <div class="form-group">
               <label class="form-label">Stop Loss Stock Price ($) *</label>
-              <input class="form-control" type="number" id="nt-stoploss" placeholder="98.00" step="0.01" oninput="recalc()">
+              <input class="form-control" type="number" id="nt-stoploss" placeholder="98.00" step="0.01">
             </div>
             <div class="form-group">
               <label class="form-label">Target Stock Price ($) *</label>
-              <input class="form-control" type="number" id="nt-target" placeholder="105.00" step="0.01" oninput="recalc()">
+              <input class="form-control" type="number" id="nt-target" placeholder="105.00" step="0.01">
             </div>
           </div>
         </div>
@@ -603,7 +611,10 @@ select.form-control option{background:var(--card);}
             </div>
             <div class="form-group" style="grid-column:1/-1;">
               <label class="form-label">Notes</label>
-              <textarea class="form-control" id="nt-notes" rows="2" placeholder="Additional notes..."></textarea>
+              <textarea class="form-control" id="nt-notes" rows="12"
+                style="min-height:200px;resize:vertical;overflow-y:auto;"
+                placeholder="Additional notes, analysis observations, lessons, setup rationale...
+You can write as much as needed here — this field supports extensive analysis notes."></textarea>
             </div>
           </div>
           <div class="mt-3 flex gap-2">
@@ -640,13 +651,13 @@ select.form-control option{background:var(--card);}
               <span class="calc-label">Max position $ (config)</span>
               <span class="calc-value" id="c-maxpos">—</span>
             </div>
-            <div class="calc-row">
-              <span class="calc-label">Contracts by position</span>
-              <span class="calc-value" id="c-bypos">—</span>
+            <div class="calc-row" style="background:rgba(59,126,255,.06);border-radius:5px;padding:7px 4px;">
+              <span class="calc-label" style="font-weight:600;color:var(--text);">Contracts by risk <span style="font-size:10px;color:var(--accent);">★ PRIMARY</span></span>
+              <span class="calc-value" id="c-byrisk">—</span>
             </div>
             <div class="calc-row">
-              <span class="calc-label">Contracts by risk</span>
-              <span class="calc-value" id="c-byrisk">—</span>
+              <span class="calc-label">Contracts by position <span style="font-size:10px;color:var(--text3);">secondary</span></span>
+              <span class="calc-value" id="c-bypos">—</span>
             </div>
             <div class="calc-highlight">
               <span class="calc-label">✅ Recommended</span>
@@ -654,7 +665,7 @@ select.form-control option{background:var(--card);}
             </div>
             <div class="calc-divider"></div>
             <div class="calc-row">
-              <span class="calc-label">Capital to deploy</span>
+              <span class="calc-label">Capital to deploy <span style="font-size:10px;color:var(--text3);">(by risk × price)</span></span>
               <span class="calc-value" id="c-capital">—</span>
             </div>
             <div class="calc-row">
@@ -674,9 +685,15 @@ select.form-control option{background:var(--card);}
               <span class="calc-value green" id="c-profitpct">—</span>
             </div>
           </div>
+          <div class="mt-3">
+            <button class="btn btn-primary" style="width:100%;font-size:14px;padding:10px;" onclick="recalc()">
+              ⚡ Calculate
+            </button>
+          </div>
           <div class="mt-3" style="font-size:11px;color:var(--text3);line-height:1.5;">
             💡 Using <strong id="calcModeLabel">Paper</strong> risk config.<br>
-            Recommended = lower of contracts by position vs risk.
+            Risk calculated using <strong>Entry Stock Price</strong> (trigger price), not current price.<br>
+            Recommended = lower of contracts by risk vs position.
           </div>
         </div>
       </div>
@@ -1178,6 +1195,7 @@ select.form-control option{background:var(--card);}
   "ticker": "TGT",
   "direction": "CALL",
   "stockPrice": 125.25,
+  "entryPrice": 130.00,
   "strike": 130,
   "expiry": "2026-06-18",
   "optionPrice": 4.325,
@@ -1458,29 +1476,37 @@ function updateConfigPreviews() {
 // RISK CALCULATOR
 // ══════════════════════════════════════════
 function recalc() {
-  const sp = parseFloat(document.getElementById('nt-stockprice').value);
+  const ep = parseFloat(document.getElementById('nt-entryprice').value); // trigger price — not current price
   const sl = parseFloat(document.getElementById('nt-stoploss').value);
   const tp = parseFloat(document.getElementById('nt-target').value);
   const op = parseFloat(document.getElementById('nt-optionprice').value);
-  const d  = parseFloat(document.getElementById('nt-delta').value);
-  if (!sp || !op || !d) { clearCalc(); return; }
+  const d  = Math.abs(parseFloat(document.getElementById('nt-delta').value) || 0); // abs — PUT deltas are negative
+
+  if (!ep || !op || !d) {
+    clearCalc();
+    if (!ep && (op || d || sl)) {
+      const el = document.getElementById('c-gap');
+      if (el) el.textContent = 'Enter Entry Price';
+    }
+    return;
+  }
 
   const funding  = riskConfig.funding    || 0;
   const maxRisk$ = (riskConfig.maxRiskPct|| 0) / 100 * funding;
   const maxPos$  = (riskConfig.maxPosPct || 0) / 100 * funding;
-  const gap      = sl ? Math.abs(sp - sl) : 0;
-  const lossPC   = gap * d * 100;
-  const byPos    = maxPos$ > 0 && op > 0 ? Math.floor(maxPos$ / (op * 100)) : 0;
-  const byRisk   = lossPC > 0 && maxRisk$ > 0 ? Math.floor(maxRisk$ / lossPC) : 0;
-  const rec      = byPos > 0 && byRisk > 0 ? Math.min(byPos, byRisk) : (byPos || byRisk);
-  const capital  = rec * op * 100;
+  const gap      = sl ? Math.abs(ep - sl) : 0;        // uses entryPrice not stockPrice
+  const lossPC   = gap * d * 100;                      // always positive
+  const byRisk   = lossPC > 0 && maxRisk$ > 0 ? Math.floor(maxRisk$ / lossPC) : 0;  // PRIMARY
+  const byPos    = maxPos$ > 0 && op > 0 ? Math.floor(maxPos$ / (op * 100)) : 0;    // SECONDARY
+  const rec      = byRisk > 0 && byPos > 0 ? Math.min(byRisk, byPos) : (byRisk || byPos);
+  const capital  = byRisk > 0 ? byRisk * op * 100 : rec * op * 100;  // capital from byRisk contracts
   const maxLoss  = rec * lossPC;
-  const tMove    = tp && sp ? Math.abs(tp - sp) : 0;
+  const tMove    = tp && ep ? Math.abs(tp - ep) : 0;  // uses entryPrice
   const profit   = tMove * d * 100 * rec;
 
   const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
-  set('c-gap',              gap    ? `$${gap.toFixed(2)}`    : '—');
-  set('c-losspercontract',  lossPC ? `$${lossPC.toFixed(2)}` : '—');
+  set('c-gap',             gap    ? `$${gap.toFixed(2)}`    : '—');
+  set('c-losspercontract', lossPC ? `$${lossPC.toFixed(2)}` : '—');
   set('c-maxrisk',  maxRisk$ ? `$${maxRisk$.toFixed(2)}`  : 'Not configured');
   set('c-maxpos',   maxPos$  ? `$${maxPos$.toFixed(2)}`   : 'Not configured');
   if (lossPC && maxRisk$) {
@@ -1488,10 +1514,10 @@ function recalc() {
       ? '<span class="badge badge-green">🟢 SAFE</span>'
       : '<span class="badge badge-red">🔴 OVER LIMIT</span>';
   } else set('c-riskcheck', '—');
-  set('c-bypos',        byPos  || '—');
-  set('c-byrisk',       byRisk || '—');
+  set('c-byrisk',       byRisk || '—');   // PRIMARY — shown first
+  set('c-bypos',        byPos  || '—');   // SECONDARY
   set('c-recommended',  rec    || '—');
-  set('c-capital',  capital ? `$${capital.toFixed(2)}`  : '—');
+  set('c-capital',  capital ? `$${capital.toFixed(2)} (${byRisk > 0 ? byRisk : rec} contracts × $${(op*100).toFixed(0)})` : '—');
   set('c-maxloss',  maxLoss ? `$${maxLoss.toFixed(2)}`  : '—');
   set('c-losspct',  (maxLoss && capital) ? `${(maxLoss/capital*100).toFixed(1)}%` : '—');
   set('c-profit',   profit  ? `$${profit.toFixed(2)}`   : '—');
@@ -1520,14 +1546,15 @@ async function submitTrade() {
   const ticker    = document.getElementById('nt-ticker').value.trim().toUpperCase();
   const direction = document.getElementById('nt-direction').value;
   const sp        = parseFloat(document.getElementById('nt-stockprice').value);
+  const ep        = parseFloat(document.getElementById('nt-entryprice').value);
   const op        = parseFloat(document.getElementById('nt-optionprice').value);
   const contracts = parseInt(document.getElementById('nt-contracts').value);
   const strike    = parseFloat(document.getElementById('nt-strike').value);
   const expiry    = document.getElementById('nt-expiry').value;
   const delta     = parseFloat(document.getElementById('nt-delta').value);
 
-  if (!ticker || !direction || !sp || !op || !contracts || !strike || !expiry || !delta) {
-    toast('Please fill all required (*) fields', 'error'); return;
+  if (!ticker || !direction || !sp || !ep || !op || !contracts || !strike || !expiry || !delta) {
+    toast('Please fill all required (*) fields including Entry Stock Price', 'error'); return;
   }
   const btn = event.currentTarget;
   btn.textContent = 'Uploading & Saving...'; btn.disabled = true;
@@ -1536,7 +1563,9 @@ async function submitTrade() {
     const entryCharts = await uploadImgState('nt-imgs', folder);
     await fbAdd(col('trades'), {
       ticker, direction,
-      stockPrice: sp, optionPrice: op, contracts, strike, expiry, delta,
+      stockPrice:  sp,
+      entryPrice:  ep,
+      optionPrice: op, contracts, strike, expiry, delta,
       entryCharts,
       theta:         parseFloat(document.getElementById('nt-theta').value)    || null,
       iv:            parseFloat(document.getElementById('nt-iv').value)       || null,
@@ -1561,7 +1590,7 @@ async function submitTrade() {
 }
 
 function resetTradeForm() {
-  ['nt-ticker','nt-direction','nt-stockprice','nt-optionprice','nt-contracts',
+  ['nt-ticker','nt-direction','nt-stockprice','nt-entryprice','nt-optionprice','nt-contracts',
    'nt-strike','nt-expiry','nt-delta','nt-theta','nt-iv','nt-stoploss','nt-target',
    'nt-trigger','nt-conviction','nt-analysisdate','nt-notes']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
@@ -2274,6 +2303,7 @@ function renderPastePreview(d) {
     row('Ticker',        d.ticker,                    'text-green'),
     row('Direction',     d.direction,                  dirColor),
     row('Stock Price',   d.stockPrice  ? '$'+d.stockPrice  : null),
+    row('Entry Price ★', d.entryPrice  ? '$'+d.entryPrice  : null, 'text-green'),
     row('Strike',        d.strike      ? '$'+d.strike      : null),
     row('Expiry',        expiryFmt),
     row('Option Price',  d.optionPrice ? '$'+d.optionPrice : null),
@@ -2305,6 +2335,7 @@ function applyPasteJSON() {
     'nt-ticker':       (d.ticker      || '').toUpperCase(),
     'nt-direction':    (d.direction   || '').toUpperCase(),
     'nt-stockprice':   d.stockPrice   || '',
+    'nt-entryprice':   d.entryPrice   || d.stockPrice || '',  // entryPrice first, fallback to stockPrice
     'nt-strike':       d.strike       || '',
     'nt-expiry':       d.expiry       || '',
     'nt-optionprice':  d.optionPrice  || '',
@@ -2331,7 +2362,7 @@ function applyPasteJSON() {
   if (entryEl    && !entryEl.value)    entryEl.value    = today;
   if (analysisEl && !analysisEl.value) analysisEl.value = today;
 
-  // Run risk calculator with new values
+  // Auto-run risk calculator after JSON load
   recalc();
 
   // Close modal and reset
@@ -2346,7 +2377,7 @@ function applyPasteJSON() {
   setTimeout(() => {
     const convEl = document.getElementById('nt-conviction');
     if (convEl) convEl.focus();
-    toast(`✅ ${(d.ticker||'').toUpperCase()} ${d.direction} trade loaded — set conviction & review`, 'success');
+    toast(`✅ ${(d.ticker||'').toUpperCase()} ${d.direction} loaded — review Entry Price, set conviction`, 'success');
   }, 150);
 }
 
