@@ -10,7 +10,7 @@
 <!-- 🔥 FIREBASE SDK — Firestore only, no Storage needed -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
   // ====================================================
   // 🔥 FIREBASE CONFIG — trading-journal-e1242
@@ -28,7 +28,7 @@
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
   window._db = db;
-  window._firebase = { collection, addDoc, getDocs, updateDoc, deleteDoc, doc };
+  window._firebase = { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc };
   window.dispatchEvent(new Event('firebaseReady'));
 </script>
 
@@ -320,6 +320,45 @@ select.form-control option{background:var(--card);}
 /* ── CLOSE TRADE PNL PREVIEW ── */
 .pnl-preview-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:14px;}
 
+/* ── BACKUP REMINDER BANNER ── */
+.backup-banner{display:flex;align-items:center;gap:12px;padding:12px 16px;
+  background:rgba(255,197,66,.12);border:1px solid var(--yellow);
+  border-left:4px solid var(--yellow);border-radius:var(--radius);
+  margin-bottom:20px;font-size:13px;color:var(--text);}
+.backup-banner .banner-icon{font-size:18px;flex-shrink:0;}
+.backup-banner .banner-text{flex:1;line-height:1.5;}
+.backup-banner .banner-text strong{color:var(--yellow);}
+.backup-banner .banner-link{color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline;}
+.backup-banner .banner-close{background:transparent;border:none;color:var(--text2);
+  font-size:18px;cursor:pointer;padding:4px 8px;flex-shrink:0;}
+.backup-banner .banner-close:hover{color:var(--text);}
+
+/* ── DATABASE MAINTENANCE ── */
+.dbm-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;margin-bottom:18px;}
+.dbm-card h3{margin:0 0 6px 0;font-size:16px;font-weight:700;color:var(--text);}
+.dbm-card .dbm-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px;}
+.dbm-card.danger{border:2px solid var(--red);background:rgba(255,77,106,.04);}
+.dbm-card.danger h3{color:var(--red);}
+.dbm-warn-block{background:rgba(255,77,106,.10);border:1px solid var(--red);
+  border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:12px;
+  line-height:1.6;color:var(--red);font-weight:500;}
+.dbm-meta{font-size:12px;color:var(--text2);margin-top:10px;font-family:var(--font-mono);}
+.dbm-meta .meta-fresh{color:var(--green);font-weight:600;}
+.dbm-meta .meta-stale{color:var(--yellow);font-weight:600;}
+.dbm-meta .meta-never{color:var(--red);font-weight:600;}
+
+/* ── DRY-RUN PREVIEW MODAL ── */
+.dryrun-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;}
+.dryrun-stat{padding:10px 12px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:6px;font-size:13px;}
+.dryrun-stat .ds-label{font-size:11px;color:var(--text2);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:4px;}
+.dryrun-stat .ds-value{font-family:var(--font-mono);font-size:18px;font-weight:700;}
+.dryrun-stat.add .ds-value{color:var(--green);}
+.dryrun-stat.update .ds-value{color:var(--yellow);}
+.dryrun-stat.skip .ds-value{color:var(--text2);}
+
 @media(max-width:600px){.nav-brand span{display:none;}.nav-tab{padding:6px 10px;font-size:12px;}}
 .gap-2{gap:8px;}.mt-2{margin-top:8px;}.mt-3{margin-top:14px;}.mt-4{margin-top:20px;}
 .flex{display:flex;}.flex-wrap{flex-wrap:wrap;}.items-center{align-items:center;}
@@ -340,6 +379,7 @@ select.form-control option{background:var(--card);}
     <button class="nav-tab" onclick="showTab('new-trade',this)">+ New Trade</button>
     <button class="nav-tab" onclick="showTab('watchlist',this)">Watchlist</button>
     <button class="nav-tab" onclick="showTab('risk-config',this)">Risk Config</button>
+    <button class="nav-tab" onclick="showTab('database-maintenance',this)">🛡️ Database Maintenance</button>
   </div>
   <div class="nav-right">
     <div class="mode-selector" id="modeSelector">
@@ -382,6 +422,7 @@ select.form-control option{background:var(--card);}
       </div>
       <button class="btn btn-outline btn-sm" onclick="refreshDashboard()">⟳ Refresh</button>
     </div>
+    <div id="backup-reminder-banner" style="display:none;"></div>
     <div class="metrics-grid">
       <div class="metric-card green">  <div class="metric-label">Open Live Trades</div><div class="metric-value" id="m-open-live">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;">Filled / executing</div></div>
       <div class="metric-card yellow"> <div class="metric-label">Open Pending Trades</div><div class="metric-value yellow" id="m-open-pending">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;">Awaiting trigger</div></div>
@@ -788,6 +829,52 @@ You can write as much as needed here — this field supports extensive analysis 
     <div class="mt-3 flex gap-2">
       <button class="btn btn-primary" onclick="saveRiskConfig()">💾 Save Configuration</button>
       <button class="btn btn-outline" onclick="loadRiskConfig()">⟳ Reset</button>
+    </div>
+  </div>
+
+  <!-- ════════ DATABASE MAINTENANCE ════════ -->
+  <div id="tab-database-maintenance" class="tab-content">
+    <div class="section-header">
+      <div>
+        <div class="section-title">🛡️ Database Maintenance</div>
+        <div class="section-sub">Backup &amp; restore — Live trading data only</div>
+      </div>
+    </div>
+
+    <!-- Export Section -->
+    <div class="dbm-card">
+      <h3>📥 Export Database</h3>
+      <div class="dbm-desc">
+        Download a complete JSON backup of your Live trading database. Includes all live trades (open + closed),
+        watchlist items, and risk configuration. Save this file somewhere safe — a backup is your only protection
+        against accidental data loss, service outages, or migration to a different platform.
+      </div>
+      <div class="dbm-desc" style="font-size:12px;color:var(--text3);">
+        <strong>Recommended frequency:</strong> at least once every 7 days, or after any significant trading activity.
+      </div>
+      <button class="btn btn-primary" id="export-db-btn" onclick="exportDatabase()">📥 Export Live Database</button>
+      <div class="dbm-meta" id="last-backup-meta">Last export: checking...</div>
+    </div>
+
+    <!-- Import Section — Danger Zone -->
+    <div class="dbm-card danger">
+      <h3>⚠️ Restore Database — Danger Zone</h3>
+      <div class="dbm-warn-block">
+        <strong>READ THIS BEFORE PROCEEDING:</strong><br>
+        Importing modifies your live trading database. Always export a fresh backup BEFORE importing as a safety net.
+        This action can add new trades and overwrite existing ones where IDs match. A dry-run preview will show exactly
+        what will change before any data is written. Trades in your current database that are NOT in the backup will
+        be left untouched (non-destructive merge).
+      </div>
+      <div class="form-group">
+        <label class="form-label">Choose backup file</label>
+        <input class="form-control" type="file" id="import-file" accept=".json" onchange="handleBackupFileSelect()">
+      </div>
+      <button class="btn btn-primary" id="preview-import-btn" onclick="previewImport()" disabled
+              style="background:var(--red);border-color:var(--red);opacity:.5;">
+        🔍 Preview Import
+      </button>
+      <div id="import-file-info" style="display:none;margin-top:10px;font-size:12px;color:var(--text2);"></div>
     </div>
   </div>
 
@@ -1264,6 +1351,122 @@ You can write as much as needed here — this field supports extensive analysis 
   </div>
 </div>
 
+<!-- Dry-Run Preview / Restore Confirm Modal -->
+<div class="modal-overlay" id="modal-restore-preview">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="restore-modal-title">🔍 Backup File Analysis</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px;" id="restore-modal-sub">
+          Review what will change before any data is written
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeRestoreModal()">✕</button>
+    </div>
+
+    <!-- STAGE 1: Dry-run preview -->
+    <div id="restore-stage-preview">
+      <div id="restore-file-info" style="font-size:12px;color:var(--text2);margin-bottom:10px;
+        padding:10px 12px;background:var(--bg2);border-radius:6px;line-height:1.6;"></div>
+
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px;">📊 Trades</div>
+      <div class="dryrun-stats">
+        <div class="dryrun-stat add">
+          <div class="ds-label">✅ Add (new)</div>
+          <div class="ds-value" id="dr-trades-add">0</div>
+        </div>
+        <div class="dryrun-stat update">
+          <div class="ds-label">🔄 Update (changed)</div>
+          <div class="ds-value" id="dr-trades-update">0</div>
+        </div>
+        <div class="dryrun-stat skip">
+          <div class="ds-label">⏭️ Skip (identical)</div>
+          <div class="ds-value" id="dr-trades-skip">0</div>
+        </div>
+      </div>
+
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px;margin-top:14px;">📋 Watchlist</div>
+      <div class="dryrun-stats">
+        <div class="dryrun-stat add">
+          <div class="ds-label">✅ Add (new)</div>
+          <div class="ds-value" id="dr-watchlist-add">0</div>
+        </div>
+        <div class="dryrun-stat update">
+          <div class="ds-label">🔄 Update (changed)</div>
+          <div class="ds-value" id="dr-watchlist-update">0</div>
+        </div>
+        <div class="dryrun-stat skip">
+          <div class="ds-label">⏭️ Skip (identical)</div>
+          <div class="ds-value" id="dr-watchlist-skip">0</div>
+        </div>
+      </div>
+
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px;margin-top:14px;">⚙️ Risk Config</div>
+      <div class="dryrun-stats">
+        <div class="dryrun-stat add">
+          <div class="ds-label">✅ Add (new)</div>
+          <div class="ds-value" id="dr-config-add">0</div>
+        </div>
+        <div class="dryrun-stat update">
+          <div class="ds-label">🔄 Update (changed)</div>
+          <div class="ds-value" id="dr-config-update">0</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding:10px 12px;background:rgba(72,187,120,.08);
+        border:1px solid var(--green);border-radius:6px;font-size:12px;color:var(--text);line-height:1.6;">
+        <strong style="color:var(--green);">✓ Non-destructive merge:</strong>
+        No trades will be deleted. Items in your current database that are NOT in the backup will be left untouched.
+      </div>
+
+      <div class="mt-3 flex gap-2">
+        <button class="btn btn-outline" onclick="closeRestoreModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="goToRestoreConfirm()"
+          style="background:var(--red);border-color:var(--red);">
+          Continue to Confirmation →
+        </button>
+      </div>
+    </div>
+
+    <!-- STAGE 2: Type-RESTORE confirmation -->
+    <div id="restore-stage-confirm" style="display:none;">
+      <div style="padding:14px;background:rgba(255,77,106,.10);border:2px solid var(--red);
+        border-radius:7px;margin-bottom:14px;font-size:13px;color:var(--text);line-height:1.6;">
+        <strong style="color:var(--red);font-size:14px;">⚠️ FINAL CONFIRMATION</strong><br><br>
+        This will modify <strong id="rc-total-mods">0</strong> documents in your live Firebase database.
+        This action cannot be undone except by restoring from another backup.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type <strong style="font-family:var(--font-mono);color:var(--red);">RESTORE</strong> in the box below to confirm:</label>
+        <input class="form-control" type="text" id="restore-confirm-input"
+          placeholder="Type RESTORE here" autocomplete="off"
+          oninput="checkRestoreConfirmInput()" style="font-family:var(--font-mono);">
+      </div>
+      <div class="mt-3 flex gap-2">
+        <button class="btn btn-outline" onclick="closeRestoreModal()">Cancel</button>
+        <button class="btn btn-primary" id="execute-restore-btn" onclick="executeImport()" disabled
+          style="background:var(--red);border-color:var(--red);opacity:.5;">
+          🛡️ Execute Restore
+        </button>
+      </div>
+    </div>
+
+    <!-- STAGE 3: Progress -->
+    <div id="restore-stage-progress" style="display:none;">
+      <div style="text-align:center;padding:30px 10px;">
+        <div class="spinner" style="margin:0 auto 14px auto;"></div>
+        <div style="font-size:14px;color:var(--text);margin-bottom:8px;" id="restore-progress-text">
+          Restoring database...
+        </div>
+        <div style="font-size:12px;color:var(--text2);" id="restore-progress-detail">
+          Please wait — do not close this window.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div class="firebase-status" id="firebaseStatus">
   <div class="spinner" style="width:12px;height:12px;"></div> Connecting...
 </div>
@@ -1313,6 +1516,10 @@ async function fbUpdate(c, id, data) {
 }
 async function fbDelete(c, id) {
   return firebase.deleteDoc(firebase.doc(db, c, id));
+}
+// fbSet — write to a SPECIFIC document ID (used only by restore feature to preserve IDs)
+async function fbSet(c, id, data) {
+  return firebase.setDoc(firebase.doc(db, c, id), data);
 }
 
 // ══════════════════════════════════════════
@@ -1408,14 +1615,15 @@ function showTab(id, el) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   if (el) el.classList.add('active');
-  if (id === 'dashboard')    refreshDashboard();
+  if (id === 'dashboard')    { refreshDashboard(); checkBackupReminder(); }
   if (id === 'open-trades')  renderOpenTrades();
   if (id === 'closed-trades') renderClosedTrades();
   if (id === 'watchlist')    renderWatchlists();
   if (id === 'risk-config')  loadRiskConfig();
+  if (id === 'database-maintenance') refreshBackupMeta();
 }
 function switchToTab(id) {
-  const map = { 'dashboard':0,'open-trades':1,'closed-trades':2,'new-trade':3,'watchlist':4,'risk-config':5 };
+  const map = { 'dashboard':0,'open-trades':1,'closed-trades':2,'new-trade':3,'watchlist':4,'risk-config':5,'database-maintenance':6 };
   showTab(id, document.querySelectorAll('.nav-tab')[map[id]]);
 }
 
@@ -2688,8 +2896,362 @@ function viewTradeImages(tradeId) {
 }
 
 // ══════════════════════════════════════════
-// INIT
+// DATABASE MAINTENANCE — BACKUP & RESTORE
 // ══════════════════════════════════════════
+// All operations target the live_* collections regardless of currentMode.
+// Live data is the only data backed up per design spec.
+
+const BACKUP_VERSION = '1.0';
+const LIVE_COLS = { trades: 'live_trades', watchlist: 'live_watchlist', riskConfig: 'live_riskConfig' };
+const BACKUP_REMINDER_DAYS = 7;
+
+// ─── Reminder banner ───────────────────────────────────────────
+function checkBackupReminder() {
+  const banner = document.getElementById('backup-reminder-banner');
+  if (!banner) return;
+  if (sessionStorage.getItem('backup-banner-dismissed') === '1') {
+    banner.style.display = 'none';
+    return;
+  }
+  const last = localStorage.getItem('lastBackupAt');
+  let show = false, daysText = '';
+  if (!last) {
+    show = true;
+    daysText = '<strong>No backup taken yet.</strong>';
+  } else {
+    const lastMs = new Date(last).getTime();
+    const ageDays = Math.floor((Date.now() - lastMs) / 86400000);
+    if (ageDays >= BACKUP_REMINDER_DAYS) {
+      show = true;
+      daysText = `<strong>No backup taken in ${ageDays} day${ageDays!==1?'s':''}.</strong>`;
+    }
+  }
+  if (show) {
+    banner.style.display = '';
+    banner.className = 'backup-banner';
+    banner.innerHTML = `
+      <div class="banner-icon">⚠️</div>
+      <div class="banner-text">
+        ${daysText} Your live trading data is at risk.
+        <span class="banner-link" onclick="switchToTab('database-maintenance')">Go to Database Maintenance →</span>
+      </div>
+      <button class="banner-close" onclick="dismissBackupBanner()" title="Dismiss for this session">✕</button>
+    `;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+function dismissBackupBanner() {
+  sessionStorage.setItem('backup-banner-dismissed', '1');
+  const banner = document.getElementById('backup-reminder-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+// ─── Refresh backup metadata in Database Maintenance tab ───────
+function refreshBackupMeta() {
+  const el = document.getElementById('last-backup-meta');
+  if (!el) return;
+  const last = localStorage.getItem('lastBackupAt');
+  if (!last) {
+    el.innerHTML = 'Last export: <span class="meta-never">Never</span>';
+    return;
+  }
+  const lastDate = new Date(last);
+  const ageDays = Math.floor((Date.now() - lastDate.getTime()) / 86400000);
+  const dateStr = lastDate.toLocaleString();
+  const cls = ageDays >= BACKUP_REMINDER_DAYS ? 'meta-stale' : 'meta-fresh';
+  const ageStr = ageDays === 0 ? 'today' : `${ageDays} day${ageDays!==1?'s':''} ago`;
+  el.innerHTML = `Last export: <span class="${cls}">${ageStr}</span> (${dateStr})`;
+}
+
+// ─── EXPORT ────────────────────────────────────────────────────
+async function exportDatabase() {
+  const btn = document.getElementById('export-db-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Reading database...';
+  try {
+    // Read all 3 live collections in parallel — pure read, no writes
+    const [tradesData, watchlistData, configData] = await Promise.all([
+      fbGetAll(LIVE_COLS.trades),
+      fbGetAll(LIVE_COLS.watchlist),
+      fbGetAll(LIVE_COLS.riskConfig),
+    ]);
+
+    const backup = {
+      version: BACKUP_VERSION,
+      exportedAt: new Date().toISOString(),
+      exportedFrom: 'RBCorp Trading Journal',
+      mode: 'live',
+      counts: {
+        trades: tradesData.length,
+        watchlist: watchlistData.length,
+        riskConfig: configData.length,
+      },
+      data: {
+        trades: tradesData,
+        watchlist: watchlistData,
+        riskConfig: configData,
+      },
+    };
+
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const filename = `trading-journal-backup-${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.json`;
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    localStorage.setItem('lastBackupAt', new Date().toISOString());
+    refreshBackupMeta();
+    toast(`✅ Exported ${tradesData.length} trades, ${watchlistData.length} watchlist, ${configData.length} config`);
+  } catch (e) {
+    console.error('Export failed:', e);
+    toast(`❌ Export failed: ${e.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// ─── IMPORT — File selection ───────────────────────────────────
+let _pendingBackup = null;  // parsed backup waiting for preview
+let _pendingPlan = null;    // computed diff plan
+
+function handleBackupFileSelect() {
+  const fileEl = document.getElementById('import-file');
+  const btn = document.getElementById('preview-import-btn');
+  const info = document.getElementById('import-file-info');
+  _pendingBackup = null;
+  _pendingPlan = null;
+
+  if (!fileEl.files || fileEl.files.length === 0) {
+    btn.disabled = true;
+    btn.style.opacity = '.5';
+    info.style.display = 'none';
+    return;
+  }
+  const file = fileEl.files[0];
+  info.style.display = '';
+  info.innerHTML = `Selected: <strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB)`;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+}
+
+// ─── IMPORT — Preview (dry-run) ────────────────────────────────
+async function previewImport() {
+  const fileEl = document.getElementById('import-file');
+  if (!fileEl.files || fileEl.files.length === 0) {
+    toast('No file selected', 'error'); return;
+  }
+  const file = fileEl.files[0];
+  const btn = document.getElementById('preview-import-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing...';
+
+  try {
+    // Parse JSON
+    const text = await file.text();
+    let backup;
+    try { backup = JSON.parse(text); }
+    catch (e) { throw new Error('File is not valid JSON: ' + e.message); }
+
+    // Validate structure
+    if (!backup.version)  throw new Error('Backup file missing "version" field — not a valid backup');
+    if (!backup.data)     throw new Error('Backup file missing "data" object — not a valid backup');
+    if (!Array.isArray(backup.data.trades))    throw new Error('Backup missing trades array');
+    if (!Array.isArray(backup.data.watchlist)) throw new Error('Backup missing watchlist array');
+    if (!Array.isArray(backup.data.riskConfig))throw new Error('Backup missing riskConfig array');
+    if (backup.mode && backup.mode !== 'live') {
+      throw new Error(`Backup is from "${backup.mode}" mode but Database Maintenance only handles live data`);
+    }
+
+    // Fetch current state of all 3 live collections
+    const [curTrades, curWatchlist, curConfig] = await Promise.all([
+      fbGetAll(LIVE_COLS.trades),
+      fbGetAll(LIVE_COLS.watchlist),
+      fbGetAll(LIVE_COLS.riskConfig),
+    ]);
+
+    // Build diff plan
+    const plan = {
+      trades:    diffCollection(backup.data.trades,    curTrades),
+      watchlist: diffCollection(backup.data.watchlist, curWatchlist),
+      config:    diffCollection(backup.data.riskConfig, curConfig),
+    };
+    _pendingBackup = backup;
+    _pendingPlan = plan;
+
+    // Populate modal
+    const exportedAt = backup.exportedAt ? new Date(backup.exportedAt) : null;
+    const ageStr = exportedAt
+      ? `${Math.floor((Date.now() - exportedAt.getTime()) / 86400000)} days ago (${exportedAt.toLocaleString()})`
+      : 'unknown date';
+    document.getElementById('restore-file-info').innerHTML =
+      `<strong>File:</strong> ${file.name}<br>` +
+      `<strong>Exported:</strong> ${ageStr}<br>` +
+      `<strong>Backup version:</strong> ${backup.version} &middot; ` +
+      `<strong>Mode:</strong> ${backup.mode || 'unknown'}`;
+
+    document.getElementById('dr-trades-add').textContent    = plan.trades.add.length;
+    document.getElementById('dr-trades-update').textContent = plan.trades.update.length;
+    document.getElementById('dr-trades-skip').textContent   = plan.trades.skip.length;
+    document.getElementById('dr-watchlist-add').textContent    = plan.watchlist.add.length;
+    document.getElementById('dr-watchlist-update').textContent = plan.watchlist.update.length;
+    document.getElementById('dr-watchlist-skip').textContent   = plan.watchlist.skip.length;
+    document.getElementById('dr-config-add').textContent    = plan.config.add.length;
+    document.getElementById('dr-config-update').textContent = plan.config.update.length;
+
+    // Reset modal stages
+    document.getElementById('restore-stage-preview').style.display  = '';
+    document.getElementById('restore-stage-confirm').style.display  = 'none';
+    document.getElementById('restore-stage-progress').style.display = 'none';
+    document.getElementById('restore-confirm-input').value = '';
+    document.getElementById('execute-restore-btn').disabled = true;
+    document.getElementById('execute-restore-btn').style.opacity = '.5';
+    openModal('modal-restore-preview');
+  } catch (e) {
+    console.error('Preview failed:', e);
+    toast(`❌ ${e.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Preview Import';
+  }
+}
+
+// Compare backup items against current items. ID-keyed; deep-equal on fields.
+function diffCollection(backupItems, currentItems) {
+  const curMap = new Map();
+  currentItems.forEach(item => curMap.set(item.id, item));
+  const add = [], update = [], skip = [];
+  backupItems.forEach(bItem => {
+    if (!bItem.id) { add.push(bItem); return; }  // safety: no ID → add as new
+    const cur = curMap.get(bItem.id);
+    if (!cur) { add.push(bItem); return; }
+    // Compare data — strip id and any volatile fields before stringify
+    const bClean = { ...bItem }; delete bClean.id;
+    const cClean = { ...cur };   delete cClean.id;
+    if (JSON.stringify(bClean) === JSON.stringify(cClean)) skip.push(bItem);
+    else update.push(bItem);
+  });
+  return { add, update, skip };
+}
+
+// ─── IMPORT — Confirm stage ────────────────────────────────────
+function goToRestoreConfirm() {
+  if (!_pendingPlan) return;
+  const total = _pendingPlan.trades.add.length + _pendingPlan.trades.update.length
+              + _pendingPlan.watchlist.add.length + _pendingPlan.watchlist.update.length
+              + _pendingPlan.config.add.length + _pendingPlan.config.update.length;
+  if (total === 0) {
+    toast('Nothing to restore — backup matches current database', 'info');
+    closeRestoreModal();
+    return;
+  }
+  document.getElementById('rc-total-mods').textContent = total;
+  document.getElementById('restore-stage-preview').style.display = 'none';
+  document.getElementById('restore-stage-confirm').style.display = '';
+}
+
+function checkRestoreConfirmInput() {
+  const v = document.getElementById('restore-confirm-input').value;
+  const btn = document.getElementById('execute-restore-btn');
+  const ok = v === 'RESTORE';
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.5';
+}
+
+function closeRestoreModal() {
+  closeModal('modal-restore-preview');
+  _pendingBackup = null;
+  _pendingPlan = null;
+}
+
+// ─── IMPORT — Execute ──────────────────────────────────────────
+async function executeImport() {
+  if (!_pendingPlan || !_pendingBackup) return;
+  // Double-check confirm input
+  if (document.getElementById('restore-confirm-input').value !== 'RESTORE') {
+    toast('Type RESTORE to confirm', 'error'); return;
+  }
+  // Move to progress stage
+  document.getElementById('restore-stage-confirm').style.display  = 'none';
+  document.getElementById('restore-stage-progress').style.display = '';
+
+  const plan = _pendingPlan;
+  const totalOps = plan.trades.add.length + plan.trades.update.length
+                 + plan.watchlist.add.length + plan.watchlist.update.length
+                 + plan.config.add.length + plan.config.update.length;
+  let done = 0;
+  const progressEl = document.getElementById('restore-progress-text');
+  const detailEl   = document.getElementById('restore-progress-detail');
+  const tick = (label) => {
+    done++;
+    progressEl.textContent = `Restoring... ${done} of ${totalOps}`;
+    if (label) detailEl.textContent = label;
+  };
+
+  let added = 0, updated = 0, failed = 0;
+  try {
+    // Trades
+    for (const t of plan.trades.add) {
+      const id = t.id; const data = { ...t }; delete data.id;
+      try { await fbSet(LIVE_COLS.trades, id, data); added++; tick(`Added trade ${t.ticker || id}`); }
+      catch (e) { console.error('Add trade failed:', t.id, e); failed++; tick(); }
+    }
+    for (const t of plan.trades.update) {
+      const id = t.id; const data = { ...t }; delete data.id;
+      try { await fbSet(LIVE_COLS.trades, id, data); updated++; tick(`Updated trade ${t.ticker || id}`); }
+      catch (e) { console.error('Update trade failed:', t.id, e); failed++; tick(); }
+    }
+    // Watchlist
+    for (const w of plan.watchlist.add) {
+      const id = w.id; const data = { ...w }; delete data.id;
+      try { await fbSet(LIVE_COLS.watchlist, id, data); added++; tick(`Added watchlist ${w.name || id}`); }
+      catch (e) { console.error('Add watchlist failed:', w.id, e); failed++; tick(); }
+    }
+    for (const w of plan.watchlist.update) {
+      const id = w.id; const data = { ...w }; delete data.id;
+      try { await fbSet(LIVE_COLS.watchlist, id, data); updated++; tick(`Updated watchlist ${w.name || id}`); }
+      catch (e) { console.error('Update watchlist failed:', w.id, e); failed++; tick(); }
+    }
+    // Risk config
+    for (const c of plan.config.add) {
+      const id = c.id; const data = { ...c }; delete data.id;
+      try { await fbSet(LIVE_COLS.riskConfig, id, data); added++; tick(`Added config`); }
+      catch (e) { console.error('Add config failed:', c.id, e); failed++; tick(); }
+    }
+    for (const c of plan.config.update) {
+      const id = c.id; const data = { ...c }; delete data.id;
+      try { await fbSet(LIVE_COLS.riskConfig, id, data); updated++; tick(`Updated config`); }
+      catch (e) { console.error('Update config failed:', c.id, e); failed++; tick(); }
+    }
+  } catch (e) {
+    console.error('Restore execution error:', e);
+    toast(`❌ Restore error: ${e.message}`, 'error');
+  }
+
+  // Refresh in-memory state so UI matches DB
+  await Promise.all([loadTrades(), loadWatchlists(), loadRiskConfig()]);
+  refreshDashboard();
+  closeRestoreModal();
+
+  const skipped = plan.trades.skip.length + plan.watchlist.skip.length;
+  if (failed === 0) {
+    toast(`✅ Restore complete: ${added} added, ${updated} updated, ${skipped} skipped`);
+  } else {
+    toast(`⚠️ Restore finished with ${failed} errors. See console. ${added} added, ${updated} updated.`, 'error');
+  }
+  // Reset file picker
+  document.getElementById('import-file').value = '';
+  handleBackupFileSelect();
+}
+
+
 document.getElementById('nt-entrydate').value    = new Date().toISOString().split('T')[0];
 document.getElementById('nt-analysisdate').value = new Date().toISOString().split('T')[0];
 
