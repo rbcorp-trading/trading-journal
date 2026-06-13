@@ -359,6 +359,11 @@ select.form-control option{background:var(--card);}
 .dryrun-stat.update .ds-value{color:var(--yellow);}
 .dryrun-stat.skip .ds-value{color:var(--text2);}
 
+/* ── TICKER PERFORMANCE TABLE ── */
+tr.ticker-row-small td{font-style:italic;color:var(--text3);}
+tr.ticker-row-small .ticker-name{font-weight:500;}
+.ticker-name{font-weight:700;}
+
 @media(max-width:600px){.nav-brand span{display:none;}.nav-tab{padding:6px 10px;font-size:12px;}}
 .gap-2{gap:8px;}.mt-2{margin-top:8px;}.mt-3{margin-top:14px;}.mt-4{margin-top:20px;}
 .flex{display:flex;}.flex-wrap{flex-wrap:wrap;}.items-center{align-items:center;}
@@ -435,6 +440,7 @@ select.form-control option{background:var(--card);}
       <div class="metric-card">        <div class="metric-label">Average Order Size</div><div class="metric-value text-mono" id="m-avgsize">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;" id="m-avgsize-sub">Pending orders only</div></div>
       <div class="metric-card green">  <div class="metric-label">Realized P&amp;L</div>   <div class="metric-value text-mono" id="m-realized">—</div></div>
       <div class="metric-card">        <div class="metric-label">Win Rate</div>        <div class="metric-value" id="m-winrate">—</div></div>
+      <div class="metric-card">        <div class="metric-label">Expectancy per Trade</div><div class="metric-value text-mono" id="m-expectancy">—</div><div style="font-size:11px;color:var(--text2);margin-top:4px;" id="m-expectancy-sub">Edge per trade</div></div>
       <div class="metric-card">        <div class="metric-label">Account Balance</div><div class="metric-value text-mono" id="m-balance">—</div></div>
       <div class="metric-card">        <div class="metric-label">Avg Win / Loss</div> <div class="metric-value" id="m-avgwl" style="font-size:14px;">—</div></div>
     </div>
@@ -448,6 +454,13 @@ select.form-control option{background:var(--card);}
         <button class="chart-filter" onclick="setChartFilter('ALL',this)">All</button>
       </div>
       <div class="chart-container"><canvas id="pnlChart"></canvas></div>
+    </div>
+    <div class="card mt-4" id="ticker-perf-card" style="display:none;">
+      <div class="card-title">📈 Performance by Ticker</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Ticker</th><th>Trades</th><th>Win Rate</th><th>Avg Win / Loss</th><th>P&amp;L</th></tr></thead>
+        <tbody id="tickerPerfBody"></tbody>
+      </table></div>
     </div>
     <div class="card mt-4">
       <div class="card-title">Monthly P&L Breakdown</div>
@@ -469,12 +482,13 @@ select.form-control option{background:var(--card);}
     <div class="card">
       <div class="table-wrap"><table>
         <thead><tr>
+          <th style="width:36px;"></th>
           <th>Ticker</th><th>Dir</th><th>Entry Date</th><th>Expiry</th>
           <th>Option $</th><th>Entry Price</th><th>Contracts</th><th>Capital</th>
-          <th>Max Loss</th><th>Stop</th><th>Target</th><th>Conviction</th><th>Status</th><th>Actions</th>
+          <th>Max Loss</th><th>Stop</th><th>Target</th><th>Status</th><th>Actions</th>
         </tr></thead>
         <tbody id="openTradesBody">
-          <tr><td colspan="13" class="loading"><div class="spinner"></div> Loading...</td></tr>
+          <tr><td colspan="14" class="loading"><div class="spinner"></div> Loading...</td></tr>
         </tbody>
       </table></div>
     </div>
@@ -1850,6 +1864,7 @@ async function submitTrade() {
     });
     await loadTrades();
     resetTradeForm();
+    refreshDashboard();
     toast(`${currentMode==='paper'?'📋 Paper':'🔴 Live'} trade added: ${ticker} ${direction}`);
     switchToTab('open-trades');
   } catch(e) { toast('Error: ' + e.message, 'error'); }
@@ -1891,10 +1906,38 @@ function renderOpenTrades() {
     const maxLossHtml = maxLoss
       ? `<span class="text-mono text-red fw-7">$${maxLoss.toFixed(2)}</span>`
       : '<span style="color:var(--text3);">—</span>';
-    const conv = t.conviction
-      ? `<span class="badge ${t.conviction==='High'?'badge-green':t.conviction==='Low'?'badge-red':'badge-yellow'}">${t.conviction}</span>`
-      : '—';
+
+    // Status cell — Live or Pending (with age badge for pending only)
+    const isPending = t.orderStatus === 'pending';
+    let statusHtml;
+    if (!isPending) {
+      statusHtml = '<span class="badge badge-green">✅ Live</span>';
+    } else {
+      // Compute age — prefer createdAt timestamp, fall back to entryDate
+      let placedMs = null;
+      if (t.createdAt) {
+        placedMs = typeof t.createdAt === 'number' ? t.createdAt : new Date(t.createdAt).getTime();
+      } else if (t.entryDate) {
+        placedMs = new Date(t.entryDate + 'T00:00:00').getTime();
+      }
+      let ageBadge = '';
+      if (placedMs && !isNaN(placedMs)) {
+        const ageDays = Math.floor((Date.now() - placedMs) / 86400000);
+        if (ageDays < 0) {
+          // Future entry date — show nothing
+        } else if (ageDays >= 10) {
+          ageBadge = ` <span class="badge" style="background:rgba(255,77,106,.18);color:var(--red);border:1px solid var(--red);font-weight:700;">${ageDays}d ⚠️</span>`;
+        } else if (ageDays >= 7) {
+          ageBadge = ` <span class="badge" style="background:rgba(255,197,66,.18);color:var(--yellow);border:1px solid var(--yellow);">${ageDays}d</span>`;
+        } else {
+          ageBadge = ` <span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">${ageDays}d</span>`;
+        }
+      }
+      statusHtml = `<span class="badge badge-yellow">⏳ Pending</span>${ageBadge}`;
+    }
+
     return `<tr>
+      <td><button class="btn btn-outline btn-xs" onclick="deleteTrade('${t.id}')" title="Delete">🗑</button></td>
       <td><strong class="text-mono">${t.ticker}</strong></td>
       <td><span class="badge ${t.direction==='CALL'?'badge-green':'badge-red'}">${t.direction}</span></td>
       <td>${t.entryDate||'—'}</td>
@@ -1906,18 +1949,12 @@ function renderOpenTrades() {
       <td>${maxLossHtml}</td>
       <td class="text-mono text-red">${t.stopLoss?'$'+t.stopLoss:'—'}</td>
       <td class="text-mono text-green">${t.target?'$'+t.target:'—'}</td>
-      <td>${conv}</td>
-      <td>
-        ${(t.orderStatus==='filled'||!t.orderStatus)
-          ? '<span class="badge badge-green">✅ Live</span>'
-          : '<span class="badge badge-yellow">⏳ Pending</span>'}
-      </td>
+      <td>${statusHtml}</td>
       <td>
         <div class="flex gap-2">
           <button class="btn btn-primary btn-xs" onclick="openEditTrade('${t.id}')">✏️ Edit</button>
           <button class="btn btn-danger btn-xs" onclick="openCloseTrade('${t.id}')">Close</button>
           ${t.notes||t.trigger?`<button class="btn btn-outline btn-xs" onclick="viewNotes('${t.id}')">Notes</button>`:''}
-          <button class="btn btn-outline btn-xs" onclick="deleteTrade('${t.id}')">🗑</button>
         </div>
       </td>
     </tr>`;
@@ -2077,12 +2114,18 @@ async function confirmCloseTrade() {
 // DELETE TRADE
 // ══════════════════════════════════════════
 async function deleteTrade(tradeId) {
-  if (!confirm('Delete this trade? This cannot be undone.')) return;
+  const t = trades.find(x => x.id === tradeId);
+  if (!t) return;
+  const typeLabel = t.status === 'closed'         ? 'Closed Trade'
+                  : t.orderStatus === 'pending'   ? 'Pending Order'
+                                                  : 'Live Trade';
+  const label = `${t.ticker || '?'} ${t.direction || ''} (${typeLabel})`.replace(/\s+/g, ' ').trim();
+  if (!confirm(`Delete ${label}?\n\nThis will permanently remove the trade from your database and cannot be undone.`)) return;
   try {
     await fbDelete(col('trades'), tradeId);
     await loadTrades();
     refreshDashboard(); renderOpenTrades(); renderClosedTrades();
-    toast('Trade deleted');
+    toast(`${label} deleted`);
   } catch(e) { toast('Error deleting trade', 'error'); }
 }
 
@@ -2312,8 +2355,92 @@ function refreshDashboard() {
   document.getElementById('m-avgwl').innerHTML =
     `<span class="text-green">$${avgWin.toFixed(0)}</span> / <span class="text-red">$${avgLoss.toFixed(0)}</span>`;
 
+  // ── Expectancy per Trade ──
+  // Spec: breakevens (pnl===0) count in denominator only; excluded from win/loss buckets.
+  // Small-sample rule: closedCount < 10 → neutral color, "(low sample)" sub-label.
+  const expEl    = document.getElementById('m-expectancy');
+  const expSubEl = document.getElementById('m-expectancy-sub');
+  if (expEl && expSubEl) {
+    const expWins   = closed.filter(t => (t.pnl||0) > 0);
+    const expLosses = closed.filter(t => (t.pnl||0) < 0);
+    const closedCt  = closed.length;
+    if (closedCt === 0) {
+      expEl.textContent = '—';
+      expEl.className = 'metric-value text-mono';
+      expSubEl.textContent = 'No closed trades';
+    } else {
+      const wRate = expWins.length / closedCt;
+      const lRate = expLosses.length / closedCt;
+      const aWin  = expWins.length   ? expWins.reduce((s,t)   => s + (t.pnl||0), 0) / expWins.length : 0;
+      const aLoss = expLosses.length ? Math.abs(expLosses.reduce((s,t) => s + (t.pnl||0), 0) / expLosses.length) : 0;
+      const expectancy = (wRate * aWin) - (lRate * aLoss);
+      const sign = expectancy >= 0 ? '+' : '−';
+      expEl.textContent = `${sign}$${Math.abs(expectancy).toFixed(2)}`;
+      if (closedCt < 10) {
+        expEl.className = 'metric-value text-mono';
+        expSubEl.textContent = `Edge per trade · ${closedCt} closed (low sample)`;
+      } else if (expectancy > 0) {
+        expEl.className = 'metric-value text-mono green';
+        expSubEl.textContent = `Edge per trade · ${closedCt} closed`;
+      } else if (expectancy < 0) {
+        expEl.className = 'metric-value text-mono red';
+        expSubEl.textContent = `Edge per trade · ${closedCt} closed`;
+      } else {
+        expEl.className = 'metric-value text-mono';
+        expSubEl.textContent = `Edge per trade · ${closedCt} closed`;
+      }
+    }
+  }
+
+  // ── Ticker Performance table ──
+  renderTickerPerformance(closed);
+
   renderPnLChart(chartFilter);
   renderMonthlyBreakdown();
+}
+
+// Group closed trades by ticker; sort by P&L desc; render to table
+function renderTickerPerformance(closed) {
+  const card = document.getElementById('ticker-perf-card');
+  const tbody = document.getElementById('tickerPerfBody');
+  if (!card || !tbody) return;
+  if (!closed || closed.length === 0) {
+    card.style.display = 'none';
+    tbody.innerHTML = '';
+    return;
+  }
+  // Group by ticker
+  const byTicker = {};
+  closed.forEach(t => {
+    const tk = (t.ticker || '?').toUpperCase();
+    if (!byTicker[tk]) byTicker[tk] = { ticker: tk, trades: 0, wins: 0, losses: 0, sumWin: 0, sumLoss: 0, pnl: 0 };
+    const g = byTicker[tk];
+    g.trades++;
+    const pnl = t.pnl || 0;
+    g.pnl += pnl;
+    if      (pnl > 0) { g.wins++;   g.sumWin  += pnl; }
+    else if (pnl < 0) { g.losses++; g.sumLoss += pnl; }   // sumLoss is negative
+    // pnl === 0 → counts in trades only (breakeven excluded from win/loss buckets, consistent with expectancy)
+  });
+  const rows = Object.values(byTicker).sort((a, b) => b.pnl - a.pnl);
+  card.style.display = '';
+  tbody.innerHTML = rows.map(r => {
+    const winRate = r.trades > 0 ? (r.wins / r.trades * 100) : 0;
+    const avgWin  = r.wins   > 0 ? (r.sumWin  / r.wins)   : null;
+    const avgLoss = r.losses > 0 ? Math.abs(r.sumLoss / r.losses) : null;
+    const awHtml = avgWin  !== null ? `<span class="text-green">+$${avgWin.toFixed(0)}</span>` : '<span style="color:var(--text3);">—</span>';
+    const alHtml = avgLoss !== null ? `<span class="text-red">−$${avgLoss.toFixed(0)}</span>` : '<span style="color:var(--text3);">—</span>';
+    const pnlSign = r.pnl >= 0 ? '+' : '−';
+    const pnlHtml = `<span class="text-mono ${r.pnl >= 0 ? 'text-green' : 'text-red'} fw-7">${pnlSign}$${Math.abs(r.pnl).toFixed(2)}</span>`;
+    const rowCls = r.trades < 3 ? 'ticker-row-small' : '';
+    return `<tr class="${rowCls}">
+      <td><span class="ticker-name text-mono">${r.ticker}</span></td>
+      <td class="text-mono">${r.trades}</td>
+      <td class="text-mono">${winRate.toFixed(0)}%</td>
+      <td class="text-mono">${awHtml} / ${alHtml}</td>
+      <td>${pnlHtml}</td>
+    </tr>`;
+  }).join('');
 }
 
 function setChartFilter(f, el) {
